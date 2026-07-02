@@ -57,7 +57,14 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Companies</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">This generated product route loads real companies through the API seam and allows inline creation.</p>
         </header>
-        <CompanyForm action={createCompanyWorkspaceAction} defaultValues={data.draftValues} submitLabel="Create Company">
+        <CompanyForm
+          action={createCompanyWorkspaceAction}
+          defaultValues={data.draftValues}
+          fieldErrors={data.fieldErrors}
+          formError={data.feedback}
+          relationOptions={data.formOptions}
+          submitLabel="Create Company"
+        >
           <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
           <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
           <input name="list_archived" type="hidden" value={data.listQuery.archived} />
@@ -66,9 +73,6 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
           <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
           <input name="list_status" type="hidden" value={data.listQuery.status ?? ""} />
-          {data.feedback ? (
-            <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>
-          ) : null}
         </CompanyForm>
         <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
           <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />

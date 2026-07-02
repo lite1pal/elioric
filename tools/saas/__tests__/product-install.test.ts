@@ -255,8 +255,23 @@ describe("saas product install", () => {
       readGenerated(repoRoot, "apps/web/src/features/crm-product/server/deal-workspace.ts")
     ).toContain("resolveDealRelationPresentations");
     expect(
+      readGenerated(repoRoot, "apps/web/src/features/crm-product/server/deal-workspace.ts")
+    ).toContain("resolveDealFormOptions");
+    expect(
+      readGenerated(repoRoot, "apps/web/src/features/crm-product/server/deal-workspace.ts")
+    ).toContain("fieldErrors: readFieldErrors(searchParams)");
+    expect(
       readGenerated(repoRoot, "apps/web/app/crm/deals/page.tsx")
     ).toContain("relationPresentations={data.relationPresentations}");
+    expect(
+      readGenerated(repoRoot, "apps/web/app/crm/deals/page.tsx")
+    ).toContain("relationOptions={data.formOptions}");
+    expect(
+      readGenerated(repoRoot, "apps/web/src/features/deal/components/deal-form.tsx")
+    ).toContain("fieldErrors?: Partial<Record<keyof DealRecord, string>>;");
+    expect(
+      readGenerated(repoRoot, "apps/web/src/features/deal/components/deal-form.tsx")
+    ).toContain('{input.relationOptions?.companyId && input.relationOptions.companyId.length > 0 ? (');
     expect(
       readGenerated(repoRoot, "apps/web/app/crm/deals/[dealId]/page.tsx")
     ).toContain("renderRelationAwareDetailValue");

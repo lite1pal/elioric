@@ -691,6 +691,12 @@ function renderProductResourceServerFile(
     product,
     resourceEntry
   );
+  const hasRelationFormOptions =
+    resourceEntry.resource.relations.some(
+      (relation) =>
+        (relation.targetScope === "platform" && relation.target === "project") ||
+        relation.targetScope === "generated"
+    );
   const hasRelationPresentations =
     resourceEntry.resource.relations.some(
       (relation) =>
@@ -738,6 +744,15 @@ function renderProductResourceServerFile(
     "        listQuery",
     "      )",
     '    : { items: [], pageInfo: { hasMore: false, nextCursor: null } };',
+    hasRelationFormOptions
+      ? [
+          `  const formOptions = await resolve${pascalResource}FormOptions({`,
+          "    organizationId: workspace.activeOrganizationId,",
+          "    projectId: workspace.activeProjectId,",
+          "    workspace",
+          "  });"
+        ].join("\n")
+      : "  const formOptions = {};",
     hasRelationPresentations
       ? [
           `  const relationPresentations = await resolve${pascalResource}RelationPresentations({`,
@@ -751,7 +766,9 @@ function renderProductResourceServerFile(
     "",
     "  return {",
     "    draftValues: readDraftValues(searchParams),",
+    "    fieldErrors: readFieldErrors(searchParams),",
     "    feedback: readFeedback(searchParams),",
+    "    formOptions,",
     "    items: listResponse.items,",
     "    listQuery,",
     "    pageInfo: listResponse.pageInfo,",
@@ -786,6 +803,15 @@ function renderProductResourceServerFile(
     `        input.${paramName}`,
     "      )",
     "    : null;",
+    hasRelationFormOptions
+      ? [
+          `  const formOptions = await resolve${pascalResource}FormOptions({`,
+          "    organizationId: workspace.activeOrganizationId,",
+          "    projectId: workspace.activeProjectId,",
+          "    workspace",
+          "  });"
+        ].join("\n")
+      : "  const formOptions = {};",
     hasRelationPresentations
       ? [
           `  const relationPresentations = item`,
@@ -801,7 +827,9 @@ function renderProductResourceServerFile(
     "",
     "  return {",
     "    draftValues: readDraftValues(input.searchParams),",
+    "    fieldErrors: readFieldErrors(input.searchParams),",
     "    feedback: readFeedback(input.searchParams),",
+    "    formOptions,",
     "    item,",
     "    listQuery,",
     "    relationPresentations,",
@@ -832,10 +860,12 @@ function renderProductResourceServerFile(
     "    revalidatePath(nextPath);",
     "    redirect(nextPath as never);",
     "  } catch (error) {",
+    "    const validationState = getValidationState(error, \"Unable to create this record right now.\");",
     "    redirect(",
     `      buildFailurePath(${JSON.stringify(resourceEntry.listPath)}, organizationId, projectId, listQuery, {`,
     "        draftValues: buildDraftValues(formData),",
-    '        feedback: getFeedbackMessage(error, "Unable to create this record right now.")',
+    "        feedback: validationState.feedback,",
+    "        fieldErrors: validationState.fieldErrors",
     "      }) as never",
     "    );",
     "  }",
@@ -868,10 +898,12 @@ function renderProductResourceServerFile(
     "    revalidatePath(listPath);",
     "    redirect(nextPath as never);",
     "  } catch (error) {",
+    "    const validationState = getValidationState(error, \"Unable to save changes right now.\");",
     "    redirect(",
     `      buildFailurePath(buildResourceEditPath(${JSON.stringify(detailPath)}, ${paramName}), organizationId, projectId, listQuery, {`,
     "        draftValues: buildDraftValues(formData),",
-    '        feedback: getFeedbackMessage(error, "Unable to save changes right now.")',
+    "        feedback: validationState.feedback,",
+    "        fieldErrors: validationState.fieldErrors",
     "      }) as never",
     "    );",
     "  }",
@@ -897,9 +929,11 @@ function renderProductResourceServerFile(
           "    revalidatePath(listPath);",
           "    redirect(listPath as never);",
           "  } catch (error) {",
+          '    const validationState = getValidationState(error, "Unable to delete this record right now.");',
           "    redirect(",
           `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
-          '        feedback: getFeedbackMessage(error, "Unable to delete this record right now.")',
+          "        feedback: validationState.feedback,",
+          "        fieldErrors: validationState.fieldErrors",
           "      }) as never",
           "    );",
           "  }",
@@ -935,9 +969,11 @@ function renderProductResourceServerFile(
           "    revalidatePath(detailPath);",
           "    redirect(listPath as never);",
           "  } catch (error) {",
+          '    const validationState = getValidationState(error, "Unable to archive this record right now.");',
           "    redirect(",
           `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
-          '        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")',
+          "        feedback: validationState.feedback,",
+          "        fieldErrors: validationState.fieldErrors",
           "      }) as never",
           "    );",
           "  }",
@@ -961,9 +997,11 @@ function renderProductResourceServerFile(
           "    revalidatePath(listPath);",
           `    redirect(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);`,
           "  } catch (error) {",
+          '    const validationState = getValidationState(error, "Unable to restore this record right now.");',
           "    redirect(",
           `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
-          '        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")',
+          "        feedback: validationState.feedback,",
+          "        fieldErrors: validationState.fieldErrors",
           "      }) as never",
           "    );",
           "  }",
@@ -980,6 +1018,29 @@ function renderProductResourceServerFile(
     "  string,",
     `  Partial<Record<string, ${pascalResource}RelationPresentation>>`,
     ">;",
+    "",
+    `type ${pascalResource}FormFieldErrors = Partial<Record<keyof ${pascalResource}Record, string>>;`,
+    "",
+    `type ${pascalResource}FormOption = {`,
+    "  label: string;",
+    "  value: string;",
+    "};",
+    "",
+    `type ${pascalResource}FormOptions = Partial<`,
+    `  Record<keyof ${pascalResource}Record, readonly ${pascalResource}FormOption[]>`,
+    ">;",
+    "",
+    `async function resolve${pascalResource}FormOptions(input: {`,
+    "  organizationId?: string;",
+    "  projectId?: string;",
+    "  workspace: ReturnType<typeof resolveWorkspaceContext>;",
+    `}): Promise<${pascalResource}FormOptions> {`,
+    `  const options: ${pascalResource}FormOptions = {};`,
+    "",
+    ...renderFormOptionResolverLines(product, resourceEntry).map((line) => `  ${line}`),
+    "",
+    "  return options;",
+    "}",
     "",
     `async function resolve${pascalResource}RelationPresentations(input: {`,
     `  items: readonly ${pascalResource}Record[];`,
@@ -1075,6 +1136,7 @@ function renderProductResourceServerFile(
     "  input: {",
     "    draftValues?: Record<string, string | undefined>;",
     "    feedback: string;",
+    `    fieldErrors?: ${pascalResource}FormFieldErrors;`,
     "  }",
     ") {",
     "  const search = new URLSearchParams({ organizationId });",
@@ -1094,6 +1156,12 @@ function renderProductResourceServerFile(
     "  }",
     "",
     '  search.set("feedback", input.feedback);',
+    "",
+    "  for (const [key, value] of Object.entries(input.fieldErrors ?? {})) {",
+    "    if (typeof value === \"string\" && value.length > 0) {",
+    '      search.set(`error_${key}`, value);',
+    "    }",
+    "  }",
     "",
     "  for (const [key, value] of Object.entries(input.draftValues ?? {})) {",
     "    if (value !== undefined && value.length > 0) {",
@@ -1126,6 +1194,17 @@ function renderProductResourceServerFile(
     '  const feedback = getSearchValue(searchParams.feedback);',
     "",
     "  return feedback ? feedback : undefined;",
+    "}",
+    "",
+    "function readFieldErrors(searchParams: Record<string, string | string[] | undefined>) {",
+    "  return compactFieldErrors({",
+    ...resourceEntry.resource.fields
+      .filter((field) => !field.hidden)
+      .map(
+        (field) =>
+          `    ${field.name}: getSearchValue(searchParams.${`error_${field.name}`}) ?? undefined,`
+      ),
+    `  }) as ${pascalResource}FormFieldErrors;`,
     "}",
     "",
     `function readDefaultListQuery(): ${pascalResource}ListQuery {`,
@@ -1179,6 +1258,12 @@ function renderProductResourceServerFile(
     "  ) as Partial<T>;",
     "}",
     "",
+    `function compactFieldErrors(values: Record<string, string | undefined>) {`,
+    "  return Object.fromEntries(",
+    "    Object.entries(values).filter(([, value]) => typeof value === \"string\" && value.length > 0)",
+    "  );",
+    "}",
+    "",
     "function coerceString(value: FormDataEntryValue | null) {",
     "  if (typeof value !== \"string\") {",
     "    return undefined;",
@@ -1199,18 +1284,35 @@ function renderProductResourceServerFile(
     '  return value === "on";',
     "}",
     "",
-    "function getFeedbackMessage(error: unknown, fallback: string) {",
+    "function getValidationState(error: unknown, fallback: string) {",
     "  if (error instanceof ZodError) {",
+    "    const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;",
+    "    const firstFieldErrors: Record<string, string | undefined> = {};",
+    "",
+    "    for (const key of Object.keys(flattened)) {",
+    "      firstFieldErrors[key] = flattened[key]?.[0];",
+    "    }",
+    "",
+    `    const fieldErrors = compactFieldErrors(firstFieldErrors) as ${pascalResource}FormFieldErrors;`,
     "    const issue = error.issues[0];",
     "",
-    "    return issue?.message ?? fallback;",
+    "    return {",
+    "      feedback: issue?.message ?? fallback,",
+    "      fieldErrors",
+    "    };",
     "  }",
     "",
     "  if (error instanceof Error && error.message.length > 0) {",
-    "    return error.message;",
+    "    return {",
+    "      feedback: error.message,",
+    `      fieldErrors: {} as ${pascalResource}FormFieldErrors`,
+    "    };",
     "  }",
     "",
-    "  return fallback;",
+    "  return {",
+    "    feedback: fallback,",
+    `    fieldErrors: {} as ${pascalResource}FormFieldErrors`,
+    "  };",
     "}"
   ]
     .filter(Boolean)
@@ -1288,13 +1390,17 @@ function renderProductResourceListPage(
     `          <h1 className="text-3xl font-semibold text-[var(--foreground)]">${resourceEntry.navLabel}</h1>`,
     `          <p className="max-w-2xl text-sm text-[var(--muted)]">This generated product route loads real ${resourceEntry.resource.pluralLabel.toLowerCase()} through the API seam and allows inline creation.</p>`,
     "        </header>",
-    `        <${pascalResource}Form action={create${pascalResource}WorkspaceAction} defaultValues={data.draftValues} submitLabel="Create ${resourceEntry.resource.label}">`,
+    `        <${pascalResource}Form`,
+    `          action={create${pascalResource}WorkspaceAction}`,
+    "          defaultValues={data.draftValues}",
+    "          fieldErrors={data.fieldErrors}",
+    "          formError={data.feedback}",
+    "          relationOptions={data.formOptions}",
+    `          submitLabel="Create ${resourceEntry.resource.label}"`,
+    "        >",
     '          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
     '          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />',
     ...renderProductListHiddenInputs(resourceEntry.resource),
-    "          {data.feedback ? (",
-    '            <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>',
-    "          ) : null}",
     `        </${pascalResource}Form>`,
     ...renderProductListFilterControls(resourceEntry.resource),
     `        <${pascalResource}Screen`,
@@ -1591,12 +1697,12 @@ function renderProductResourceEditPage(
     `          <h1 className="text-3xl font-semibold text-[var(--foreground)]">Edit ${resourceEntry.resource.label}</h1>`,
     `          <p className="max-w-2xl text-sm text-[var(--muted)]">Update the generated ${resourceEntry.resource.label.toLowerCase()} record through the existing API seam.</p>`,
     "        </header>",
-    "        {data.feedback ? (",
-    '          <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>',
-    "        ) : null}",
     `        <${pascalResource}Form`,
     `          action={update${pascalResource}WorkspaceAction}`,
     `          defaultValues={${renderDraftPresenceExpression(resourceEntry.resource)} ? { ...(data.item ?? {}), ...data.draftValues } : data.item ?? undefined}`,
+    "          fieldErrors={data.fieldErrors}",
+    "          formError={data.feedback}",
+    "          relationOptions={data.formOptions}",
     `          submitLabel="Save ${resourceEntry.resource.label}"`,
     "        >",
     `          <input name="${paramName}" type="hidden" value={data.item?.id ?? resolvedParams.${paramName}} />`,
@@ -1696,6 +1802,12 @@ function getProductSortableFields(resource: GeneratedProductResource["resource"]
   return fields;
 }
 
+function getDefaultProductSortBy(resource: GeneratedProductResource["resource"]) {
+  const sortValues = getProductSortableFields(resource).map((field) => field.name);
+
+  return sortValues.includes("createdAt") ? "createdAt" : sortValues[0] ?? "createdAt";
+}
+
 function renderProductListQueryType(resource: GeneratedProductResource["resource"]) {
   const sortValues = getProductSortableFields(resource)
     .map((field) => JSON.stringify(field.name))
@@ -1735,9 +1847,7 @@ function renderProductQueryFieldType(
 
 function renderProductReadListQueryLines(resource: GeneratedProductResource["resource"]) {
   const sortValues = getProductSortableFields(resource).map((field) => field.name);
-  const defaultSortBy = sortValues.includes("createdAt")
-    ? "createdAt"
-    : sortValues[0] ?? "createdAt";
+  const defaultSortBy = getDefaultProductSortBy(resource);
 
   return [
     resource.archive.enabled ? "    archived: readArchivedFilter(searchParams)," : "",
@@ -1756,9 +1866,7 @@ function renderProductReadListQueryLines(resource: GeneratedProductResource["res
 
 function renderProductReadFormListQueryLines(resource: GeneratedProductResource["resource"]) {
   const sortValues = getProductSortableFields(resource).map((field) => field.name);
-  const defaultSortBy = sortValues.includes("createdAt")
-    ? "createdAt"
-    : sortValues[0] ?? "createdAt";
+  const defaultSortBy = getDefaultProductSortBy(resource);
 
   return [
     resource.archive.enabled ? "    archived: readArchivedFilterFromFormData(formData)," : "",
@@ -2117,6 +2225,62 @@ function renderRelationPresentationResolverLines(
       `        ${relation.field}Presentations.get(item.${relation.field}) ?? { label: item.${relation.field} };`,
       "    }",
       "  }",
+      "}",
+      ""
+    );
+  }
+
+  return lines;
+}
+
+function renderFormOptionResolverLines(
+  product: GeneratedProductSpec,
+  resourceEntry: GeneratedProductResource
+) {
+  const lines: string[] = [];
+  const projectRelations = resourceEntry.resource.relations.filter(
+    (relation) => relation.targetScope === "platform" && relation.target === "project"
+  );
+
+  if (projectRelations.length > 0) {
+    for (const relation of projectRelations) {
+      lines.push(
+        `options.${relation.field} = input.workspace.projects.map((project) => ({`,
+        "  label: project.name,",
+        "  value: project.id",
+        "}));",
+        ""
+      );
+    }
+  }
+
+  for (const { relation, targetResource } of getResolvableGeneratedRelationTargets(
+    product,
+    resourceEntry
+  )) {
+    const targetPascal = toPascalCase(targetResource.resource.resource);
+    const labelField = getProductResourceDisplayField(targetResource);
+    const defaultSortBy = getDefaultProductSortBy(targetResource.resource);
+    const defaultQueryLines = [
+      targetResource.resource.archive.enabled ? 'archived: "exclude",' : "",
+      `sortBy: ${JSON.stringify(defaultSortBy)},`,
+      'sortDirection: "desc",',
+      "limit: 100"
+    ].filter(Boolean);
+
+    lines.push(
+      "if (input.organizationId) {",
+      `  const ${relation.field}Response = await create${targetPascal}ResourceClient(createServerApiClient()).list(`,
+      "    input.organizationId,",
+      "    {",
+      ...defaultQueryLines.map((line) => `      ${line}`),
+      "    }",
+      "  );",
+      "",
+      `  options.${relation.field} = ${relation.field}Response.items.map((record) => ({`,
+      `    label: record.${labelField}?.toString() ?? record.id,`,
+      "    value: record.id",
+      "  }));",
       "}",
       ""
     );

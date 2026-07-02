@@ -57,7 +57,14 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Deals</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">This generated product route loads real deals through the API seam and allows inline creation.</p>
         </header>
-        <DealForm action={createDealWorkspaceAction} defaultValues={data.draftValues} submitLabel="Create Deal">
+        <DealForm
+          action={createDealWorkspaceAction}
+          defaultValues={data.draftValues}
+          fieldErrors={data.fieldErrors}
+          formError={data.feedback}
+          relationOptions={data.formOptions}
+          submitLabel="Create Deal"
+        >
           <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
           <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
           <input name="list_archived" type="hidden" value={data.listQuery.archived} />
@@ -68,9 +75,6 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <input name="list_stage" type="hidden" value={data.listQuery.stage ?? ""} />
           <input name="list_companyId" type="hidden" value={data.listQuery.companyId ?? ""} />
           <input name="list_ownerId" type="hidden" value={data.listQuery.ownerId ?? ""} />
-          {data.feedback ? (
-            <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>
-          ) : null}
         </DealForm>
         <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
           <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />

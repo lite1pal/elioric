@@ -193,7 +193,7 @@ describe("generated todo product flow", () => {
     await createTodoWorkspaceAction(invalidFormData);
 
     expect(redirectMock).toHaveBeenCalledWith(
-      "/todo/todos?organizationId=org-1&projectId=project-1&archived=exclude&feedback=Too+small%3A+expected+string+to+have+%3E%3D1+characters&draft_details=Create+and+list+one+todo+through+the+generated+page&draft_status=todo&draft_dueAt=2026-07-01T12%3A30"
+      "/todo/todos?organizationId=org-1&projectId=project-1&archived=exclude&feedback=Too+small%3A+expected+string+to+have+%3E%3D1+characters&error_title=Too+small%3A+expected+string+to+have+%3E%3D1+characters&draft_details=Create+and+list+one+todo+through+the+generated+page&draft_status=todo&draft_dueAt=2026-07-01T12%3A30"
     );
 
     const invalidPage = await loadTodoWorkspacePage(
@@ -201,6 +201,7 @@ describe("generated todo product flow", () => {
         draft_details: "Create and list one todo through the generated page",
         draft_dueAt: "2026-07-01T12:30",
         draft_status: "todo",
+        error_title: "Too small: expected string to have >=1 characters",
         feedback: "Too small: expected string to have >=1 characters",
         organizationId: "org-1",
         projectId: "project-1"
@@ -213,6 +214,9 @@ describe("generated todo product flow", () => {
     expect(invalidPage.feedback).toBe(
       "Too small: expected string to have >=1 characters"
     );
+    expect(invalidPage.fieldErrors).toEqual({
+      title: "Too small: expected string to have >=1 characters"
+    });
     expect(invalidPage.draftValues).toEqual(
       expect.objectContaining({
         details: "Create and list one todo through the generated page",
@@ -438,6 +442,7 @@ describe("generated todo product flow", () => {
           draft_details: "Detail and edit now come from generated product routes",
           draft_dueAt: "2026-07-01T12:30",
           draft_status: "done",
+          error_title: "Title is required",
           feedback: "Title is required",
           organizationId: "org-1",
           projectId: "project-1"
@@ -448,8 +453,9 @@ describe("generated todo product flow", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Todos" })
     ).toBeTruthy();
-    expect(screen.getByText("Title is required")).toBeTruthy();
+    expect(screen.getAllByText("Title is required").length).toBe(2);
     expect(screen.getByRole("button", { name: "Create Todo" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: /^Title/ }).getAttribute("aria-invalid")).toBe("true");
     expect(
       screen.getByDisplayValue("Detail and edit now come from generated product routes")
     ).toBeTruthy();
@@ -482,6 +488,7 @@ describe("generated todo product flow", () => {
         }),
         searchParams: Promise.resolve({
           draft_details: "Updated from validation feedback",
+          error_status: "Status is required",
           feedback: "Status is required",
           organizationId: "org-1",
           projectId: "project-1"
@@ -490,7 +497,8 @@ describe("generated todo product flow", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "Edit Todo" })).toBeTruthy();
-    expect(screen.getByText("Status is required")).toBeTruthy();
+    expect(screen.getAllByText("Status is required").length).toBe(2);
+    expect(screen.getAllByRole("combobox", { name: /^Status/ }).at(-1)?.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByDisplayValue("Ship generated detail flow")).toBeTruthy();
     expect(screen.getByDisplayValue("Updated from validation feedback")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save Todo" })).toBeTruthy();

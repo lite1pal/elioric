@@ -2,6 +2,16 @@
 
 ## 2026-07-02
 
+- Completed T-122 by adding richer generated form widgets and field-level
+  validation UX. Generated form components now accept structured
+  `fieldErrors`, a form-level feedback banner, bounded help text, and
+  relation-option lists; generated product workspace loaders now prefetch
+  bounded relation selects for supported generated targets plus
+  `platform:project`; and the committed todo and CRM proofs now exercise the
+  same generator-owned behavior without manual component edits. Regenerating
+  the proofs also corrected drift in the committed initial todo SQL migration
+  so `packages/db/src/migrations/0013_todo.sql` now includes `archived_at`.
+
 - Completed T-126 by hardening reinstall and upgrade semantics for
   multi-resource products. `install product --force` now reports deterministic
   generated-file and shared-root change states, focused tests now prove both

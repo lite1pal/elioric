@@ -36,18 +36,21 @@ This file tracks task-system and agent-workflow work items.
     - Generated product pages can render and preserve query state for the supported filters without custom per-product page logic
     - Focused tests prove the query contract for both generator fixtures and one installed proof resource
 
-- [ ] T-122 Add richer generated form widgets and field-level validation UX
-  status: ready
+- [x] T-122 Add richer generated form widgets and field-level validation UX
+  status: done
   priority: medium
   owner: codex
   branch:
   pr:
   last_updated: 2026-07-02
-  completed:
+  completed: 2026-07-02
   blocked_reason:
   notes:
     - 2026-07-02: generated forms are now functional, but CRM-grade products still need better widget defaults and clearer field-level feedback
     - 2026-07-02: this task should improve generated ergonomics without introducing hand-built product forms as the default path
+    - 2026-07-02: completed by extending generator-owned form components with relation-option selects, field-level error rendering, help text, and form-level error banners while keeping text-input fallback for unsupported relation lookups
+    - 2026-07-02: generated product workspace loaders now resolve bounded relation options for generated targets plus `platform:project`, preserve those through create and edit pages, and round-trip structured `error_<field>` feedback through redirect-safe server actions
+    - 2026-07-02: verified with focused SaaS generator/install tests, generated todo and CRM product flow tests, and web typecheck; regenerating the committed proofs also corrected drift in `packages/db/src/migrations/0013_todo.sql` so the initial todo SQL now includes `archived_at`
   files:
     - tools/saas/*
     - apps/web/src/features/*

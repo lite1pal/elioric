@@ -548,6 +548,12 @@ describe("generated crm product flow", () => {
       { currentUser }
     );
 
+    expect(dealPage.formOptions.companyId).toEqual([
+      {
+        label: "Acme",
+        value: COMPANY_ID
+      }
+    ]);
     expect(dealPage.items).toEqual([
       expect.objectContaining({
         amount: "12000",
@@ -707,6 +713,7 @@ describe("generated crm product flow", () => {
     render(
       await DealPage({
         searchParams: Promise.resolve({
+          error_stage: "Stage is required",
           feedback: "Stage is required",
           organizationId: "org-1",
           projectId: "project-1"
@@ -715,10 +722,13 @@ describe("generated crm product flow", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "Deals" })).toBeTruthy();
-    expect(screen.getByText("Stage is required")).toBeTruthy();
+    expect(screen.getAllByText("Stage is required").length).toBe(2);
     expect(screen.getByRole("button", { name: "Create Deal" })).toBeTruthy();
+    expect(screen.getAllByRole("combobox", { name: /^Stage/ })[0]?.getAttribute("aria-invalid")).toBe("true");
+    expect(screen.getAllByRole("combobox", { name: /^Company/ })[0]).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Acme" })).toBeTruthy();
     expect(screen.getByText("Platform Expansion")).toBeTruthy();
-    expect(screen.getByText("Acme")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Acme" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "View" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Edit" })).toBeTruthy();
 
@@ -746,6 +756,7 @@ describe("generated crm product flow", () => {
           dealId: DEAL_ID
         }),
         searchParams: Promise.resolve({
+          error_ownerId: "Owner is required",
           feedback: "Owner is required",
           organizationId: "org-1",
           projectId: "project-1"
@@ -754,7 +765,8 @@ describe("generated crm product flow", () => {
     );
 
     expect(screen.getByRole("heading", { level: 1, name: "Edit Deal" })).toBeTruthy();
-    expect(screen.getByText("Owner is required")).toBeTruthy();
+    expect(screen.getAllByText("Owner is required").length).toBe(2);
+    expect(screen.getAllByRole("textbox", { name: /^Owner/ }).at(-1)?.getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByDisplayValue("Platform Expansion")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Save Deal" })).toBeTruthy();
 

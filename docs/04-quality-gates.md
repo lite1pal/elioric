@@ -82,6 +82,12 @@ deterministic; generated route and client tests must prove list responses
 include `pageInfo`; and the installed todo proof must preserve list query
 state through generated product-owned flows instead of resetting to a fixed
 default view.
+Generated form-widget depth now lives in that lane as well: generator fixture
+tests must prove form components accept structured field errors and relation
+options, install tests must prove relation-aware product pages wire those props
+without manual edits, and the committed todo plus CRM web proofs must prove
+field-level feedback and bounded relation-select rendering through the
+generated runtime path.
 The committed CRM proof now extends that release signal beyond one resource:
 generated CRM web tests must prove the product-owned flow across company,
 contact, deal, and note; and the API integration harness must prove the same

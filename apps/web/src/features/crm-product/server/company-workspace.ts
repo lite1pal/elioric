@@ -31,10 +31,13 @@ export async function loadCompanyWorkspacePage(
         listQuery
       )
     : { items: [], pageInfo: { hasMore: false, nextCursor: null } };
+  const formOptions = {};
   const relationPresentations = {};
   return {
     draftValues: readDraftValues(searchParams),
+    fieldErrors: readFieldErrors(searchParams),
     feedback: readFeedback(searchParams),
+    formOptions,
     items: listResponse.items,
     listQuery,
     pageInfo: listResponse.pageInfo,
@@ -68,10 +71,13 @@ export async function loadCompanyWorkspaceDetailPage(
         input.companyId
       )
     : null;
+  const formOptions = {};
   const relationPresentations = {};
   return {
     draftValues: readDraftValues(input.searchParams),
+    fieldErrors: readFieldErrors(input.searchParams),
     feedback: readFeedback(input.searchParams),
+    formOptions,
     item,
     listQuery,
     relationPresentations,
@@ -97,10 +103,12 @@ export async function createCompanyWorkspaceAction(formData: FormData) {
     revalidatePath(nextPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to create this record right now.");
     redirect(
       buildFailurePath("/crm/companies", organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to create this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -128,10 +136,12 @@ export async function updateCompanyWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to save changes right now.");
     redirect(
       buildFailurePath(buildResourceEditPath("/crm/companies", companyId), organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to save changes right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -163,9 +173,11 @@ export async function archiveCompanyWorkspaceAction(formData: FormData) {
     revalidatePath(detailPath);
     redirect(listPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to archive this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/companies", companyId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -189,9 +201,11 @@ export async function unarchiveCompanyWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(buildResourcePath("/crm/companies", companyId, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to restore this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/companies", companyId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -204,6 +218,22 @@ type CompanyRelationPresentations = Record<
   string,
   Partial<Record<string, CompanyRelationPresentation>>
 >;
+type CompanyFormFieldErrors = Partial<Record<keyof CompanyRecord, string>>;
+type CompanyFormOption = {
+  label: string;
+  value: string;
+};
+type CompanyFormOptions = Partial<
+  Record<keyof CompanyRecord, readonly CompanyFormOption[]>
+>;
+async function resolveCompanyFormOptions(input: {
+  organizationId?: string;
+  projectId?: string;
+  workspace: ReturnType<typeof resolveWorkspaceContext>;
+}): Promise<CompanyFormOptions> {
+  const options: CompanyFormOptions = {};
+  return options;
+}
 async function resolveCompanyRelationPresentations(input: {
   items: readonly CompanyRecord[];
   organizationId?: string;
@@ -293,6 +323,7 @@ function buildFailurePath(
   input: {
     draftValues?: Record<string, string | undefined>;
     feedback: string;
+    fieldErrors?: CompanyFormFieldErrors;
   }
 ) {
   const search = new URLSearchParams({ organizationId });
@@ -313,6 +344,11 @@ function buildFailurePath(
     search.set(key, String(value));
   }
   search.set("feedback", input.feedback);
+  for (const [key, value] of Object.entries(input.fieldErrors ?? {})) {
+    if (typeof value === "string" && value.length > 0) {
+      search.set(`error_${key}`, value);
+    }
+  }
   for (const [key, value] of Object.entries(input.draftValues ?? {})) {
     if (value !== undefined && value.length > 0) {
       search.set(`draft_${key}`, value);
@@ -336,6 +372,13 @@ function readPositiveInteger(value: string | undefined) {
 function readFeedback(searchParams: Record<string, string | string[] | undefined>) {
   const feedback = getSearchValue(searchParams.feedback);
   return feedback ? feedback : undefined;
+}
+function readFieldErrors(searchParams: Record<string, string | string[] | undefined>) {
+  return compactFieldErrors({
+    name: getSearchValue(searchParams.error_name) ?? undefined,
+    domain: getSearchValue(searchParams.error_domain) ?? undefined,
+    status: getSearchValue(searchParams.error_status) ?? undefined,
+  }) as CompanyFormFieldErrors;
 }
 function readDefaultListQuery(): CompanyListQuery {
   return {
@@ -401,6 +444,11 @@ function compactDraftValues<T extends Record<string, unknown>>(values: T) {
     Object.entries(values).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
 }
+function compactFieldErrors(values: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => typeof value === "string" && value.length > 0)
+  );
+}
 function coerceString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return undefined;
@@ -415,13 +463,28 @@ function coerceDatetime(value: FormDataEntryValue | null) {
 function coerceBoolean(value: FormDataEntryValue | null) {
   return value === "on";
 }
-function getFeedbackMessage(error: unknown, fallback: string) {
+function getValidationState(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
+    const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;
+    const firstFieldErrors: Record<string, string | undefined> = {};
+    for (const key of Object.keys(flattened)) {
+      firstFieldErrors[key] = flattened[key]?.[0];
+    }
+    const fieldErrors = compactFieldErrors(firstFieldErrors) as CompanyFormFieldErrors;
     const issue = error.issues[0];
-    return issue?.message ?? fallback;
+    return {
+      feedback: issue?.message ?? fallback,
+      fieldErrors
+    };
   }
   if (error instanceof Error && error.message.length > 0) {
-    return error.message;
+    return {
+      feedback: error.message,
+      fieldErrors: {} as CompanyFormFieldErrors
+    };
   }
-  return fallback;
+  return {
+    feedback: fallback,
+    fieldErrors: {} as CompanyFormFieldErrors
+  };
 }

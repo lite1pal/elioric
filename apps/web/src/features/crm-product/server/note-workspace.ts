@@ -32,6 +32,11 @@ export async function loadNoteWorkspacePage(
         listQuery
       )
     : { items: [], pageInfo: { hasMore: false, nextCursor: null } };
+  const formOptions = await resolveNoteFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = await resolveNoteRelationPresentations({
     items: listResponse.items,
     organizationId: workspace.activeOrganizationId,
@@ -40,7 +45,9 @@ export async function loadNoteWorkspacePage(
   });
   return {
     draftValues: readDraftValues(searchParams),
+    fieldErrors: readFieldErrors(searchParams),
     feedback: readFeedback(searchParams),
+    formOptions,
     items: listResponse.items,
     listQuery,
     pageInfo: listResponse.pageInfo,
@@ -74,6 +81,11 @@ export async function loadNoteWorkspaceDetailPage(
         input.noteId
       )
     : null;
+  const formOptions = await resolveNoteFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = item
     ? await resolveNoteRelationPresentations({
         items: [item],
@@ -84,7 +96,9 @@ export async function loadNoteWorkspaceDetailPage(
     : {};
   return {
     draftValues: readDraftValues(input.searchParams),
+    fieldErrors: readFieldErrors(input.searchParams),
     feedback: readFeedback(input.searchParams),
+    formOptions,
     item,
     listQuery,
     relationPresentations,
@@ -109,10 +123,12 @@ export async function createNoteWorkspaceAction(formData: FormData) {
     revalidatePath(nextPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to create this record right now.");
     redirect(
       buildFailurePath("/crm/notes", organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to create this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -139,10 +155,12 @@ export async function updateNoteWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to save changes right now.");
     redirect(
       buildFailurePath(buildResourceEditPath("/crm/notes", noteId), organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to save changes right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -174,9 +192,11 @@ export async function archiveNoteWorkspaceAction(formData: FormData) {
     revalidatePath(detailPath);
     redirect(listPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to archive this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/notes", noteId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -200,9 +220,11 @@ export async function unarchiveNoteWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(buildResourcePath("/crm/notes", noteId, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to restore this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/notes", noteId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -215,6 +237,39 @@ type NoteRelationPresentations = Record<
   string,
   Partial<Record<string, NoteRelationPresentation>>
 >;
+type NoteFormFieldErrors = Partial<Record<keyof NoteRecord, string>>;
+type NoteFormOption = {
+  label: string;
+  value: string;
+};
+type NoteFormOptions = Partial<
+  Record<keyof NoteRecord, readonly NoteFormOption[]>
+>;
+async function resolveNoteFormOptions(input: {
+  organizationId?: string;
+  projectId?: string;
+  workspace: ReturnType<typeof resolveWorkspaceContext>;
+}): Promise<NoteFormOptions> {
+  const options: NoteFormOptions = {};
+  if (input.organizationId) {
+    const dealIdResponse = await createDealResourceClient(createServerApiClient()).list(
+      input.organizationId,
+      {
+        archived: "exclude",
+        sortBy: "createdAt",
+        sortDirection: "desc",
+        limit: 100
+      }
+    );
+  
+    options.dealId = dealIdResponse.items.map((record) => ({
+      label: record.name?.toString() ?? record.id,
+      value: record.id
+    }));
+  }
+  
+  return options;
+}
 async function resolveNoteRelationPresentations(input: {
   items: readonly NoteRecord[];
   organizationId?: string;
@@ -338,6 +393,7 @@ function buildFailurePath(
   input: {
     draftValues?: Record<string, string | undefined>;
     feedback: string;
+    fieldErrors?: NoteFormFieldErrors;
   }
 ) {
   const search = new URLSearchParams({ organizationId });
@@ -358,6 +414,11 @@ function buildFailurePath(
     search.set(key, String(value));
   }
   search.set("feedback", input.feedback);
+  for (const [key, value] of Object.entries(input.fieldErrors ?? {})) {
+    if (typeof value === "string" && value.length > 0) {
+      search.set(`error_${key}`, value);
+    }
+  }
   for (const [key, value] of Object.entries(input.draftValues ?? {})) {
     if (value !== undefined && value.length > 0) {
       search.set(`draft_${key}`, value);
@@ -381,6 +442,12 @@ function readPositiveInteger(value: string | undefined) {
 function readFeedback(searchParams: Record<string, string | string[] | undefined>) {
   const feedback = getSearchValue(searchParams.feedback);
   return feedback ? feedback : undefined;
+}
+function readFieldErrors(searchParams: Record<string, string | string[] | undefined>) {
+  return compactFieldErrors({
+    body: getSearchValue(searchParams.error_body) ?? undefined,
+    dealId: getSearchValue(searchParams.error_dealId) ?? undefined,
+  }) as NoteFormFieldErrors;
 }
 function readDefaultListQuery(): NoteListQuery {
   return {
@@ -444,6 +511,11 @@ function compactDraftValues<T extends Record<string, unknown>>(values: T) {
     Object.entries(values).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
 }
+function compactFieldErrors(values: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => typeof value === "string" && value.length > 0)
+  );
+}
 function coerceString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return undefined;
@@ -458,13 +530,28 @@ function coerceDatetime(value: FormDataEntryValue | null) {
 function coerceBoolean(value: FormDataEntryValue | null) {
   return value === "on";
 }
-function getFeedbackMessage(error: unknown, fallback: string) {
+function getValidationState(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
+    const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;
+    const firstFieldErrors: Record<string, string | undefined> = {};
+    for (const key of Object.keys(flattened)) {
+      firstFieldErrors[key] = flattened[key]?.[0];
+    }
+    const fieldErrors = compactFieldErrors(firstFieldErrors) as NoteFormFieldErrors;
     const issue = error.issues[0];
-    return issue?.message ?? fallback;
+    return {
+      feedback: issue?.message ?? fallback,
+      fieldErrors
+    };
   }
   if (error instanceof Error && error.message.length > 0) {
-    return error.message;
+    return {
+      feedback: error.message,
+      fieldErrors: {} as NoteFormFieldErrors
+    };
   }
-  return fallback;
+  return {
+    feedback: fallback,
+    fieldErrors: {} as NoteFormFieldErrors
+  };
 }

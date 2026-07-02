@@ -314,6 +314,10 @@ describe("saas resource generator", () => {
       repoRoot,
       ".generated/task-preview/apps/web/src/features/task/components/task-table.tsx"
     );
+    const webForm = readGenerated(
+      repoRoot,
+      ".generated/task-preview/apps/web/src/features/task/components/task-form.tsx"
+    );
     const migration = readGenerated(
       repoRoot,
       ".generated/task-applied/packages/db/src/migrations/0000_task.sql"
@@ -334,6 +338,10 @@ describe("saas resource generator", () => {
     expect(webTable).toContain("relationPresentations?: TaskRelationPresentations;");
     expect(webTable).toContain('renderRelationAwareValue(item.id, "projectId", item.projectId, input.relationPresentations)');
     expect(webTable).toContain('renderRelationAwareValue(item.id, "assigneeId", item.assigneeId, input.relationPresentations)');
+    expect(webForm).toContain("fieldErrors?: Partial<Record<keyof TaskRecord, string>>;");
+    expect(webForm).toContain("relationOptions?: Partial<Record<keyof TaskRecord, readonly TaskFormRelationOption[]>>;");
+    expect(webForm).toContain('{input.relationOptions?.projectId && input.relationOptions.projectId.length > 0 ? (');
+    expect(webForm).toContain('{input.relationOptions?.assigneeId && input.relationOptions.assigneeId.length > 0 ? (');
     expect(migration).toContain('"project_id" uuid references "projects"("id") not null');
     expect(migration).toContain('"assignee_id" uuid references "users"("id")');
   });

@@ -158,6 +158,10 @@ for simple resource-backed products:
   action seams for create, detail, edit, archive, restore, archived-filter
   list views, and validation-feedback redirects in addition to the installed
   generated API module and migration
+- generated form components remain generator-owned too: they now accept
+  `defaultValues`, structured `fieldErrors`, a form-level feedback string, and
+  bounded relation-option lists so product pages do not need hand-built form
+  state wiring for the supported CRUD slice
 - generated list pages now share one query-state seam: the generated domain
   contract emits cursor, limit, search, sort, and bounded filter inputs; the
   generated API repo and routes consume that contract; and the generated
@@ -177,6 +181,11 @@ for simple resource-backed products:
   generated API modules, generated product-owned web routes, and relation
   presentation loaders work together for `company -> contact -> deal -> note`
   without shared bootstrap edits
+- bounded relation widgets now sit on the same seam: generated product loaders
+  can prefetch select options for product-local generated relations and
+  `platform:project`, while unsupported lookups such as `platform:user`
+  intentionally degrade to scalar-id entry instead of implying a full people
+  directory abstraction
 - the proof also hardened two generator internals that broader product families
   depend on: generated DB names now use the same pluralization rules as route
   paths, and archive-enabled resources now emit archive-ready initial SQL

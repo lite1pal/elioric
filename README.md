@@ -218,6 +218,11 @@ The current product-generation slice is intentionally narrow:
   limit, search query, sort direction, and bounded filter fields; generated
   product pages preserve that query state through create, detail, edit,
   archive, and restore flows without per-product glue code
+- generated form components now surface field-level validation feedback,
+  form-level error banners, and bounded help text by default; generated
+  product loaders can also provide relation-option selects for supported
+  generated targets instead of leaving CRM-style create forms on raw UUID
+  text entry
 - the CRM proof is now committed end to end through supported seams:
   `init product --template crm`, `plan product`, `install product`,
   `products:backfill crm`, generated DB schema plus migrations, generated CRM
@@ -236,7 +241,9 @@ The current product-generation slice is intentionally narrow:
 
 Current CRM limits remain explicit:
 
-- relation fields still use raw ids in generated forms and API payloads
+- relation widgets are bounded: generated form selects currently cover
+  product-local generated targets and `platform:project`, while
+  `platform:user` and broader directory lookups still fall back to raw ids
 - the CRM proof is bounded to list/detail/edit/archive/workflow CRUD pages, not
   dashboards or pipeline views
 - richer field widgets, related detail sections, and reinstall-upgrade

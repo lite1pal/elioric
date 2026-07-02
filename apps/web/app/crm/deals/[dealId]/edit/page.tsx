@@ -51,12 +51,12 @@ export default async function ResourceEditPage({
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Edit Deal</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">Update the generated deal record through the existing API seam.</p>
         </header>
-        {data.feedback ? (
-          <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>
-        ) : null}
         <DealForm
           action={updateDealWorkspaceAction}
           defaultValues={data.draftValues?.name !== undefined || data.draftValues?.stage !== undefined || data.draftValues?.amount !== undefined || data.draftValues?.companyId !== undefined || data.draftValues?.ownerId !== undefined ? { ...(data.item ?? {}), ...data.draftValues } : data.item ?? undefined}
+          fieldErrors={data.fieldErrors}
+          formError={data.feedback}
+          relationOptions={data.formOptions}
           submitLabel="Save Deal"
         >
           <input name="dealId" type="hidden" value={data.item?.id ?? resolvedParams.dealId} />

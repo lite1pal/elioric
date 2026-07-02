@@ -5,6 +5,7 @@ create table if not exists "todos" (
   "details" text,
   "status" text not null,
   "due_at" timestamp with time zone,
+  "archived_at" timestamp with time zone,
   "created_at" timestamp with time zone default now() not null,
   "updated_at" timestamp with time zone default now() not null
 );

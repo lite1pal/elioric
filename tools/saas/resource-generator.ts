@@ -2325,37 +2325,65 @@ function renderWebScreen(context: ReturnType<typeof createTemplateContext>) {
 
 function renderWebForm(context: ReturnType<typeof createTemplateContext>) {
   const formFields = context.createFields.map((field) => {
-    const label = field.label ?? toLabel(field.name);
+    const relation = context.relationByField.get(field.name);
+    const label = relation?.label ?? field.label ?? (relation ? toLabel(relation.name) : toLabel(field.name));
     const valueAccessor = `input.defaultValues?.${field.name}`;
+    const fieldErrorAccessor = `input.fieldErrors?.${field.name}`;
+    const helpText = field.description;
+    const describedByIds = [
+      helpText ? `${field.name}-hint` : null,
+      `${field.name}-error`
+    ].filter(Boolean);
+    const describedBy =
+      describedByIds.length > 0
+        ? `          aria-describedby={${JSON.stringify(describedByIds.join(" "))}}`
+        : undefined;
+    const invalidAttribute = `          aria-invalid={${fieldErrorAccessor} ? true : undefined}`;
 
     if (field.type === "text") {
       return [
         `      <label key={${JSON.stringify(field.name)}} className="grid gap-2">`,
-        `        <span>${label}</span>`,
+        `        <span className="text-sm font-medium">${label}</span>`,
         `        <textarea`,
-        `          className="min-h-24 rounded-md border border-[var(--border)] px-3 py-2"`,
+        `          className={${fieldErrorAccessor} ? "min-h-24 rounded-md border border-red-500 px-3 py-2" : "min-h-24 rounded-md border border-[var(--border)] px-3 py-2"}`,
         `          defaultValue={${valueAccessor} ?? ""}`,
         `          name="${field.name}"`,
         `          ${field.required ? "required" : ""}`,
+        describedBy,
+        invalidAttribute,
         "        />",
+        helpText
+          ? `        <span className="text-xs text-[var(--muted)]" id="${field.name}-hint">${helpText}</span>`
+          : "",
+        `        {${fieldErrorAccessor} ? <span className="text-xs text-red-600" id="${field.name}-error">{${fieldErrorAccessor}}</span> : null}`,
         "      </label>"
-      ].join("\n");
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
 
     if (field.type === "enum" && field.values) {
       return [
         `      <label key={${JSON.stringify(field.name)}} className="grid gap-2">`,
-        `        <span>${label}</span>`,
+        `        <span className="text-sm font-medium">${label}</span>`,
         `        <select`,
-        `          className="rounded-md border border-[var(--border)] px-3 py-2"`,
+        `          className={${fieldErrorAccessor} ? "rounded-md border border-red-500 px-3 py-2" : "rounded-md border border-[var(--border)] px-3 py-2"}`,
         `          defaultValue={${valueAccessor} ?? ${JSON.stringify(field.default ?? field.values[0])}}`,
         `          name="${field.name}"`,
         `          ${field.required ? "required" : ""}`,
+        describedBy,
+        invalidAttribute,
         "        >",
         ...field.values.map((value) => `          <option value="${value}">${toLabel(value)}</option>`),
         "        </select>",
+        helpText
+          ? `        <span className="text-xs text-[var(--muted)]" id="${field.name}-hint">${helpText}</span>`
+          : "",
+        `        {${fieldErrorAccessor} ? <span className="text-xs text-red-600" id="${field.name}-error">{${fieldErrorAccessor}}</span> : null}`,
         "      </label>"
-      ].join("\n");
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
 
     if (field.type === "boolean") {
@@ -2367,9 +2395,50 @@ function renderWebForm(context: ReturnType<typeof createTemplateContext>) {
         `          name="${field.name}"`,
         `          type="checkbox"`,
         "        />",
-        `        <span>${label}</span>`,
+        `        <span className="text-sm font-medium">${label}</span>`,
         "      </label>"
       ].join("\n");
+    }
+
+    if (relation) {
+      return [
+        `      <label key={${JSON.stringify(field.name)}} className="grid gap-2">`,
+        `        <span className="text-sm font-medium">${label}</span>`,
+        `        {input.relationOptions?.${field.name} && input.relationOptions.${field.name}.length > 0 ? (`,
+        `          <select`,
+        `            className={${fieldErrorAccessor} ? "rounded-md border border-red-500 px-3 py-2" : "rounded-md border border-[var(--border)] px-3 py-2"}`,
+        `            defaultValue={${valueAccessor} ?? ""}`,
+        `            name="${field.name}"`,
+        `            ${field.required ? "required" : ""}`,
+        describedBy,
+        invalidAttribute,
+        "          >",
+        `            <option value="">${field.required ? `Select ${label.toLowerCase()}` : `No ${label.toLowerCase()} selected`}</option>`,
+        `            {input.relationOptions.${field.name}.map((option) => (`,
+        `              <option key={option.value} value={option.value}>`,
+        "                {option.label}",
+        "              </option>",
+        "            ))}",
+        "          </select>",
+        "        ) : (",
+        `          <input`,
+        `            className={${fieldErrorAccessor} ? "rounded-md border border-red-500 px-3 py-2" : "rounded-md border border-[var(--border)] px-3 py-2"}`,
+        `            defaultValue={${valueAccessor} ?? ""}`,
+        `            name="${field.name}"`,
+        `            ${field.required ? "required" : ""}`,
+        describedBy,
+        invalidAttribute,
+        `            type="text"`,
+        "          />",
+        "        )}",
+        helpText
+          ? `        <span className="text-xs text-[var(--muted)]" id="${field.name}-hint">${helpText}</span>`
+          : "",
+        `        {${fieldErrorAccessor} ? <span className="text-xs text-red-600" id="${field.name}-error">{${fieldErrorAccessor}}</span> : null}`,
+        "      </label>"
+      ]
+        .filter(Boolean)
+        .join("\n");
     }
 
     const defaultValue =
@@ -2379,16 +2448,24 @@ function renderWebForm(context: ReturnType<typeof createTemplateContext>) {
 
     return [
       `      <label key={${JSON.stringify(field.name)}} className="grid gap-2">`,
-      `        <span>${label}</span>`,
+      `        <span className="text-sm font-medium">${label}</span>`,
       `        <input`,
-      `          className="rounded-md border border-[var(--border)] px-3 py-2"`,
+      `          className={${fieldErrorAccessor} ? "rounded-md border border-red-500 px-3 py-2" : "rounded-md border border-[var(--border)] px-3 py-2"}`,
       `          defaultValue={${defaultValue}}`,
       `          name="${field.name}"`,
       `          ${field.required ? "required" : ""}`,
+      describedBy,
+      invalidAttribute,
       `          type="${renderHtmlInputType(field.type)}"`,
       "        />",
+      helpText
+        ? `        <span className="text-xs text-[var(--muted)]" id="${field.name}-hint">${helpText}</span>`
+        : "",
+      `        {${fieldErrorAccessor} ? <span className="text-xs text-red-600" id="${field.name}-error">{${fieldErrorAccessor}}</span> : null}`,
       "      </label>"
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   });
 
   return [
@@ -2396,14 +2473,25 @@ function renderWebForm(context: ReturnType<typeof createTemplateContext>) {
     "",
     `import type { ${context.pascalName}Record } from "../domain/schemas.js";`,
     "",
+    `type ${context.pascalName}FormRelationOption = {`,
+    "  label: string;",
+    "  value: string;",
+    "};",
+    "",
     `export function ${context.pascalName}Form(input: {`,
     "  action?: (formData: FormData) => void | Promise<void>;",
     "  children?: ReactNode;",
     `  defaultValues?: Partial<${context.pascalName}Record>;`,
+    `  fieldErrors?: Partial<Record<keyof ${context.pascalName}Record, string>>;`,
+    "  formError?: string;",
+    `  relationOptions?: Partial<Record<keyof ${context.pascalName}Record, readonly ${context.pascalName}FormRelationOption[]>>;`,
     "  submitLabel?: string;",
     "}) {",
     '  return (',
     '    <form action={input.action} className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4">',
+    "      {input.formError ? (",
+    '        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{input.formError}</p>',
+    "      ) : null}",
     "      {input.children}",
     ...formFields,
     '      <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">{input.submitLabel ?? "Save ' +

@@ -51,12 +51,12 @@ export default async function ResourceEditPage({
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Edit Contact</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">Update the generated contact record through the existing API seam.</p>
         </header>
-        {data.feedback ? (
-          <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>
-        ) : null}
         <ContactForm
           action={updateContactWorkspaceAction}
           defaultValues={data.draftValues?.name !== undefined || data.draftValues?.email !== undefined || data.draftValues?.title !== undefined || data.draftValues?.companyId !== undefined ? { ...(data.item ?? {}), ...data.draftValues } : data.item ?? undefined}
+          fieldErrors={data.fieldErrors}
+          formError={data.feedback}
+          relationOptions={data.formOptions}
           submitLabel="Save Contact"
         >
           <input name="contactId" type="hidden" value={data.item?.id ?? resolvedParams.contactId} />

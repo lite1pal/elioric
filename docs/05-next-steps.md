@@ -25,6 +25,13 @@ The immediate Elioric framework roadmap is now:
    shared-root change states, force reinstall and spec-upgrade behavior are
    covered by focused tests, and the current overwrite-based upgrade limits
    are documented explicitly.
+1. T-122: add richer generated form widgets and field-level validation UX so
+   CRM-style products stop falling back to raw text inputs and one generic
+   feedback banner
+   Status: done. Generated form components now render field-level errors,
+   help text, and bounded relation-select widgets, while generated product
+   loaders round-trip structured validation feedback and relation options
+   without hand-built form state.
 1. broaden relation-aware product generation beyond the current bounded project
   and product-local target slice so a PM slice can compose task -> project and
   comment -> task without manual page logic

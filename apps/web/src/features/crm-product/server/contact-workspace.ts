@@ -32,6 +32,11 @@ export async function loadContactWorkspacePage(
         listQuery
       )
     : { items: [], pageInfo: { hasMore: false, nextCursor: null } };
+  const formOptions = await resolveContactFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = await resolveContactRelationPresentations({
     items: listResponse.items,
     organizationId: workspace.activeOrganizationId,
@@ -40,7 +45,9 @@ export async function loadContactWorkspacePage(
   });
   return {
     draftValues: readDraftValues(searchParams),
+    fieldErrors: readFieldErrors(searchParams),
     feedback: readFeedback(searchParams),
+    formOptions,
     items: listResponse.items,
     listQuery,
     pageInfo: listResponse.pageInfo,
@@ -74,6 +81,11 @@ export async function loadContactWorkspaceDetailPage(
         input.contactId
       )
     : null;
+  const formOptions = await resolveContactFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = item
     ? await resolveContactRelationPresentations({
         items: [item],
@@ -84,7 +96,9 @@ export async function loadContactWorkspaceDetailPage(
     : {};
   return {
     draftValues: readDraftValues(input.searchParams),
+    fieldErrors: readFieldErrors(input.searchParams),
     feedback: readFeedback(input.searchParams),
+    formOptions,
     item,
     listQuery,
     relationPresentations,
@@ -111,10 +125,12 @@ export async function createContactWorkspaceAction(formData: FormData) {
     revalidatePath(nextPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to create this record right now.");
     redirect(
       buildFailurePath("/crm/contacts", organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to create this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -143,10 +159,12 @@ export async function updateContactWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to save changes right now.");
     redirect(
       buildFailurePath(buildResourceEditPath("/crm/contacts", contactId), organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to save changes right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -178,9 +196,11 @@ export async function archiveContactWorkspaceAction(formData: FormData) {
     revalidatePath(detailPath);
     redirect(listPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to archive this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/contacts", contactId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -204,9 +224,11 @@ export async function unarchiveContactWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(buildResourcePath("/crm/contacts", contactId, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to restore this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/contacts", contactId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -219,6 +241,39 @@ type ContactRelationPresentations = Record<
   string,
   Partial<Record<string, ContactRelationPresentation>>
 >;
+type ContactFormFieldErrors = Partial<Record<keyof ContactRecord, string>>;
+type ContactFormOption = {
+  label: string;
+  value: string;
+};
+type ContactFormOptions = Partial<
+  Record<keyof ContactRecord, readonly ContactFormOption[]>
+>;
+async function resolveContactFormOptions(input: {
+  organizationId?: string;
+  projectId?: string;
+  workspace: ReturnType<typeof resolveWorkspaceContext>;
+}): Promise<ContactFormOptions> {
+  const options: ContactFormOptions = {};
+  if (input.organizationId) {
+    const companyIdResponse = await createCompanyResourceClient(createServerApiClient()).list(
+      input.organizationId,
+      {
+        archived: "exclude",
+        sortBy: "createdAt",
+        sortDirection: "desc",
+        limit: 100
+      }
+    );
+  
+    options.companyId = companyIdResponse.items.map((record) => ({
+      label: record.name?.toString() ?? record.id,
+      value: record.id
+    }));
+  }
+  
+  return options;
+}
 async function resolveContactRelationPresentations(input: {
   items: readonly ContactRecord[];
   organizationId?: string;
@@ -342,6 +397,7 @@ function buildFailurePath(
   input: {
     draftValues?: Record<string, string | undefined>;
     feedback: string;
+    fieldErrors?: ContactFormFieldErrors;
   }
 ) {
   const search = new URLSearchParams({ organizationId });
@@ -362,6 +418,11 @@ function buildFailurePath(
     search.set(key, String(value));
   }
   search.set("feedback", input.feedback);
+  for (const [key, value] of Object.entries(input.fieldErrors ?? {})) {
+    if (typeof value === "string" && value.length > 0) {
+      search.set(`error_${key}`, value);
+    }
+  }
   for (const [key, value] of Object.entries(input.draftValues ?? {})) {
     if (value !== undefined && value.length > 0) {
       search.set(`draft_${key}`, value);
@@ -385,6 +446,14 @@ function readPositiveInteger(value: string | undefined) {
 function readFeedback(searchParams: Record<string, string | string[] | undefined>) {
   const feedback = getSearchValue(searchParams.feedback);
   return feedback ? feedback : undefined;
+}
+function readFieldErrors(searchParams: Record<string, string | string[] | undefined>) {
+  return compactFieldErrors({
+    name: getSearchValue(searchParams.error_name) ?? undefined,
+    email: getSearchValue(searchParams.error_email) ?? undefined,
+    title: getSearchValue(searchParams.error_title) ?? undefined,
+    companyId: getSearchValue(searchParams.error_companyId) ?? undefined,
+  }) as ContactFormFieldErrors;
 }
 function readDefaultListQuery(): ContactListQuery {
   return {
@@ -452,6 +521,11 @@ function compactDraftValues<T extends Record<string, unknown>>(values: T) {
     Object.entries(values).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
 }
+function compactFieldErrors(values: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => typeof value === "string" && value.length > 0)
+  );
+}
 function coerceString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return undefined;
@@ -466,13 +540,28 @@ function coerceDatetime(value: FormDataEntryValue | null) {
 function coerceBoolean(value: FormDataEntryValue | null) {
   return value === "on";
 }
-function getFeedbackMessage(error: unknown, fallback: string) {
+function getValidationState(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
+    const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;
+    const firstFieldErrors: Record<string, string | undefined> = {};
+    for (const key of Object.keys(flattened)) {
+      firstFieldErrors[key] = flattened[key]?.[0];
+    }
+    const fieldErrors = compactFieldErrors(firstFieldErrors) as ContactFormFieldErrors;
     const issue = error.issues[0];
-    return issue?.message ?? fallback;
+    return {
+      feedback: issue?.message ?? fallback,
+      fieldErrors
+    };
   }
   if (error instanceof Error && error.message.length > 0) {
-    return error.message;
+    return {
+      feedback: error.message,
+      fieldErrors: {} as ContactFormFieldErrors
+    };
   }
-  return fallback;
+  return {
+    feedback: fallback,
+    fieldErrors: {} as ContactFormFieldErrors
+  };
 }

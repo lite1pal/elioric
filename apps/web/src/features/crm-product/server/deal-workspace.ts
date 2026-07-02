@@ -32,6 +32,11 @@ export async function loadDealWorkspacePage(
         listQuery
       )
     : { items: [], pageInfo: { hasMore: false, nextCursor: null } };
+  const formOptions = await resolveDealFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = await resolveDealRelationPresentations({
     items: listResponse.items,
     organizationId: workspace.activeOrganizationId,
@@ -40,7 +45,9 @@ export async function loadDealWorkspacePage(
   });
   return {
     draftValues: readDraftValues(searchParams),
+    fieldErrors: readFieldErrors(searchParams),
     feedback: readFeedback(searchParams),
+    formOptions,
     items: listResponse.items,
     listQuery,
     pageInfo: listResponse.pageInfo,
@@ -74,6 +81,11 @@ export async function loadDealWorkspaceDetailPage(
         input.dealId
       )
     : null;
+  const formOptions = await resolveDealFormOptions({
+    organizationId: workspace.activeOrganizationId,
+    projectId: workspace.activeProjectId,
+    workspace
+  });
   const relationPresentations = item
     ? await resolveDealRelationPresentations({
         items: [item],
@@ -84,7 +96,9 @@ export async function loadDealWorkspaceDetailPage(
     : {};
   return {
     draftValues: readDraftValues(input.searchParams),
+    fieldErrors: readFieldErrors(input.searchParams),
     feedback: readFeedback(input.searchParams),
+    formOptions,
     item,
     listQuery,
     relationPresentations,
@@ -112,10 +126,12 @@ export async function createDealWorkspaceAction(formData: FormData) {
     revalidatePath(nextPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to create this record right now.");
     redirect(
       buildFailurePath("/crm/deals", organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to create this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -145,10 +161,12 @@ export async function updateDealWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(nextPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to save changes right now.");
     redirect(
       buildFailurePath(buildResourceEditPath("/crm/deals", dealId), organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: getFeedbackMessage(error, "Unable to save changes right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -180,9 +198,11 @@ export async function archiveDealWorkspaceAction(formData: FormData) {
     revalidatePath(detailPath);
     redirect(listPath as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to archive this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/deals", dealId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -206,9 +226,11 @@ export async function unarchiveDealWorkspaceAction(formData: FormData) {
     revalidatePath(listPath);
     redirect(buildResourcePath("/crm/deals", dealId, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);
   } catch (error) {
+    const validationState = getValidationState(error, "Unable to restore this record right now.");
     redirect(
       buildFailurePath(buildResourcePath("/crm/deals", dealId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
-        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")
+        feedback: validationState.feedback,
+        fieldErrors: validationState.fieldErrors
       }) as never
     );
   }
@@ -221,6 +243,39 @@ type DealRelationPresentations = Record<
   string,
   Partial<Record<string, DealRelationPresentation>>
 >;
+type DealFormFieldErrors = Partial<Record<keyof DealRecord, string>>;
+type DealFormOption = {
+  label: string;
+  value: string;
+};
+type DealFormOptions = Partial<
+  Record<keyof DealRecord, readonly DealFormOption[]>
+>;
+async function resolveDealFormOptions(input: {
+  organizationId?: string;
+  projectId?: string;
+  workspace: ReturnType<typeof resolveWorkspaceContext>;
+}): Promise<DealFormOptions> {
+  const options: DealFormOptions = {};
+  if (input.organizationId) {
+    const companyIdResponse = await createCompanyResourceClient(createServerApiClient()).list(
+      input.organizationId,
+      {
+        archived: "exclude",
+        sortBy: "createdAt",
+        sortDirection: "desc",
+        limit: 100
+      }
+    );
+  
+    options.companyId = companyIdResponse.items.map((record) => ({
+      label: record.name?.toString() ?? record.id,
+      value: record.id
+    }));
+  }
+  
+  return options;
+}
 async function resolveDealRelationPresentations(input: {
   items: readonly DealRecord[];
   organizationId?: string;
@@ -348,6 +403,7 @@ function buildFailurePath(
   input: {
     draftValues?: Record<string, string | undefined>;
     feedback: string;
+    fieldErrors?: DealFormFieldErrors;
   }
 ) {
   const search = new URLSearchParams({ organizationId });
@@ -370,6 +426,11 @@ function buildFailurePath(
     search.set(key, String(value));
   }
   search.set("feedback", input.feedback);
+  for (const [key, value] of Object.entries(input.fieldErrors ?? {})) {
+    if (typeof value === "string" && value.length > 0) {
+      search.set(`error_${key}`, value);
+    }
+  }
   for (const [key, value] of Object.entries(input.draftValues ?? {})) {
     if (value !== undefined && value.length > 0) {
       search.set(`draft_${key}`, value);
@@ -393,6 +454,15 @@ function readPositiveInteger(value: string | undefined) {
 function readFeedback(searchParams: Record<string, string | string[] | undefined>) {
   const feedback = getSearchValue(searchParams.feedback);
   return feedback ? feedback : undefined;
+}
+function readFieldErrors(searchParams: Record<string, string | string[] | undefined>) {
+  return compactFieldErrors({
+    name: getSearchValue(searchParams.error_name) ?? undefined,
+    stage: getSearchValue(searchParams.error_stage) ?? undefined,
+    amount: getSearchValue(searchParams.error_amount) ?? undefined,
+    companyId: getSearchValue(searchParams.error_companyId) ?? undefined,
+    ownerId: getSearchValue(searchParams.error_ownerId) ?? undefined,
+  }) as DealFormFieldErrors;
 }
 function readDefaultListQuery(): DealListQuery {
   return {
@@ -468,6 +538,11 @@ function compactDraftValues<T extends Record<string, unknown>>(values: T) {
     Object.entries(values).filter(([, value]) => value !== undefined)
   ) as Partial<T>;
 }
+function compactFieldErrors(values: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => typeof value === "string" && value.length > 0)
+  );
+}
 function coerceString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
     return undefined;
@@ -482,13 +557,28 @@ function coerceDatetime(value: FormDataEntryValue | null) {
 function coerceBoolean(value: FormDataEntryValue | null) {
   return value === "on";
 }
-function getFeedbackMessage(error: unknown, fallback: string) {
+function getValidationState(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
+    const flattened = error.flatten().fieldErrors as Record<string, string[] | undefined>;
+    const firstFieldErrors: Record<string, string | undefined> = {};
+    for (const key of Object.keys(flattened)) {
+      firstFieldErrors[key] = flattened[key]?.[0];
+    }
+    const fieldErrors = compactFieldErrors(firstFieldErrors) as DealFormFieldErrors;
     const issue = error.issues[0];
-    return issue?.message ?? fallback;
+    return {
+      feedback: issue?.message ?? fallback,
+      fieldErrors
+    };
   }
   if (error instanceof Error && error.message.length > 0) {
-    return error.message;
+    return {
+      feedback: error.message,
+      fieldErrors: {} as DealFormFieldErrors
+    };
   }
-  return fallback;
+  return {
+    feedback: fallback,
+    fieldErrors: {} as DealFormFieldErrors
+  };
 }
