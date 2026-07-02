@@ -157,7 +157,7 @@ function normalizeTodoResource(productId: string): FrameworkResourceSpec {
 
   return frameworkResourceSpecSchema.parse({
     api: {
-      filters: [],
+      filters: ["status"],
       pagination: true,
       prefix: `/v1/organizations/:organizationId/${pluralPath}`,
       public: false
@@ -401,7 +401,7 @@ function normalizeProductResource(input: {
 
   return frameworkResourceSpecSchema.parse({
     api: {
-      filters: [],
+      filters: deriveProductFilterFields(input),
       pagination: true,
       prefix: `/v1/organizations/:organizationId/${pluralPath}`,
       public: false
@@ -440,6 +440,35 @@ function normalizeProductResource(input: {
       navLabel: pluralizeLabel(input.label)
     }
   });
+}
+
+function deriveProductFilterFields(input: {
+  fields: NonNullable<FrameworkResourceSpec["fields"]>;
+  relations?: NonNullable<FrameworkResourceSpec["relations"]>;
+  workflow?: FrameworkResourceSpec["workflow"];
+}) {
+  const filters = new Set<string>();
+
+  if (input.workflow?.field) {
+    filters.add(input.workflow.field);
+  }
+
+  for (const field of input.fields) {
+    if (field.type === "boolean") {
+      filters.add(field.name);
+      continue;
+    }
+
+    if (field.type === "enum" && field.required) {
+      filters.add(field.name);
+    }
+  }
+
+  for (const relation of input.relations ?? []) {
+    filters.add(relation.field ?? `${relation.name}Id`);
+  }
+
+  return [...filters];
 }
 
 function readProductId(value: string) {

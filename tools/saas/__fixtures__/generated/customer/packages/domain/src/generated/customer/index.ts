@@ -41,14 +41,27 @@ export const updateCustomerInputSchema = z.object({
   lastContactedAt: z.string().datetime().optional()
 });
 
-export const listCustomersInputSchema = z.object({
+export const customerPageInfoSchema = z.object({
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable()
+});
 
-  cursor: z.string().uuid().optional(),
+export const listCustomersInputSchema = z.object({
+  cursor: z.string().min(1).optional(),
   limit: z.number().int().positive().max(100).optional(),
-  query: z.string().trim().min(1).optional()
+  query: z.string().trim().min(1).optional(),
+  sortBy: z.enum(["createdAt", "updatedAt", "email"]).default("createdAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc")
+});
+
+export const listCustomersResponseSchema = z.object({
+  items: z.array(customerRecordSchema),
+  pageInfo: customerPageInfoSchema
 });
 
 export type CustomerRecord = z.infer<typeof customerRecordSchema>;
+export type CustomerPageInfo = z.infer<typeof customerPageInfoSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerInputSchema>;
 export type UpdateCustomerInput = z.infer<typeof updateCustomerInputSchema>;
 export type ListCustomersInput = z.infer<typeof listCustomersInputSchema>;
+export type ListCustomersResponse = z.infer<typeof listCustomersResponseSchema>;

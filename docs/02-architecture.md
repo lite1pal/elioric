@@ -158,6 +158,11 @@ for simple resource-backed products:
   action seams for create, detail, edit, archive, restore, archived-filter
   list views, and validation-feedback redirects in addition to the installed
   generated API module and migration
+- generated list pages now share one query-state seam: the generated domain
+  contract emits cursor, limit, search, sort, and bounded filter inputs; the
+  generated API repo and routes consume that contract; and the generated
+  product-owned pages preserve those values through workspace navigation and
+  form redirects without manual page logic
 - generated record routes now flow through a bounded policy seam:
   `read`, `write`, `archive`, and future `workflow` actions can stay on the
   default organization-role contract or opt into ownership-aware member checks

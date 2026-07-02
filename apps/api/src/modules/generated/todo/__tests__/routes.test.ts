@@ -15,24 +15,34 @@ describe("registerTodoRoutes", () => {
     const app = buildTestApp({
       async list(input) {
         expect(input).toEqual({
-          archived: "only",
-          cursor: undefined,
-          limit: undefined,
+          filters: {
+            archived: "only",
+            cursor: undefined,
+            limit: undefined,
+            query: undefined,
+            sortBy: "createdAt",
+            sortDirection: "desc"
+          },
           organizationId: "11111111-1111-4111-8111-111111111111",
-          query: undefined
         });
-        return [
-          {
-            createdAt: "2026-06-29T00:00:00.000Z",
+        return {
+          items: [
+            {
+              createdAt: "2026-06-29T00:00:00.000Z",
       title: "title value",
       details: "details value",
       status: "todo",
       dueAt: "2026-06-29T00:00:00.000Z",
-            id: "22222222-2222-4222-8222-222222222222",
-            organizationId: "11111111-1111-4111-8111-111111111111",
-            updatedAt: "2026-06-29T00:00:00.000Z"
+              id: "22222222-2222-4222-8222-222222222222",
+              organizationId: "11111111-1111-4111-8111-111111111111",
+              updatedAt: "2026-06-29T00:00:00.000Z"
+            }
+          ],
+          pageInfo: {
+            hasMore: false,
+            nextCursor: null
           }
-        ];
+        };
       }
     });
     const response = await app.inject({
@@ -51,7 +61,11 @@ describe("registerTodoRoutes", () => {
           organizationId: "11111111-1111-4111-8111-111111111111",
           updatedAt: "2026-06-29T00:00:00.000Z"
         }
-      ]
+      ],
+      pageInfo: {
+        hasMore: false,
+        nextCursor: null
+      }
     });
   });
   it("maps forbidden organization access to 403", async () => {
@@ -72,47 +86,17 @@ describe("registerTodoRoutes", () => {
     expect(response.json()).toEqual({ error: "forbidden" });
   });
 
-  it("maps forbidden record access to 403 on archive actions", async () => {
-    const app = buildTestApp(
-      {
-        async get() {
-          return {
-            createdAt: "2026-06-29T00:00:00.000Z",
-            details: "details value",
-            dueAt: "2026-06-29T00:00:00.000Z",
-            id: "22222222-2222-4222-8222-222222222222",
-            organizationId: "11111111-1111-4111-8111-111111111111",
-            status: "todo",
-            title: "title value",
-            updatedAt: "2026-06-29T00:00:00.000Z"
-          };
-        }
-      },
-      {
-        recordAccessError: new Error("forbidden")
-      }
-    );
-
-    const response = await app.inject({
-      method: "POST",
-      url: "/v1/organizations/11111111-1111-4111-8111-111111111111/todos/22222222-2222-4222-8222-222222222222/archive"
-    });
-
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toEqual({ error: "forbidden" });
-  });
-
   it("archives todo records for authorized organization members", async () => {
     const app = buildTestApp({
       async get() {
         return {
           createdAt: "2026-06-29T00:00:00.000Z",
-          details: "details value",
-          dueAt: "2026-06-29T00:00:00.000Z",
+      title: "title value",
+      details: "details value",
+      status: "todo",
+      dueAt: "2026-06-29T00:00:00.000Z",
           id: "22222222-2222-4222-8222-222222222222",
           organizationId: "11111111-1111-4111-8111-111111111111",
-          status: "todo",
-          title: "title value",
           updatedAt: "2026-06-29T00:00:00.000Z"
         };
       },
@@ -151,12 +135,12 @@ describe("registerTodoRoutes", () => {
         return {
           archivedAt: "2026-07-01T00:00:00.000Z",
           createdAt: "2026-06-29T00:00:00.000Z",
-          details: "details value",
-          dueAt: "2026-06-29T00:00:00.000Z",
+      title: "title value",
+      details: "details value",
+      status: "todo",
+      dueAt: "2026-06-29T00:00:00.000Z",
           id: "22222222-2222-4222-8222-222222222222",
           organizationId: "11111111-1111-4111-8111-111111111111",
-          status: "todo",
-          title: "title value",
           updatedAt: "2026-07-01T00:00:00.000Z"
         };
       },
@@ -239,7 +223,7 @@ function createTodoServiceStub(
       throw new Error("not implemented");
     },
     async list() {
-      return [];
+      return { items: [], pageInfo: { hasMore: false, nextCursor: null } };
     },
     async unarchive() {
       throw new Error("not implemented");

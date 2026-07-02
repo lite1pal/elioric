@@ -4,18 +4,20 @@ This file tracks task-system and agent-workflow work items.
 
 ## Queue
 
-- [ ] T-121 Add generated filter, sort, and pagination primitives for product resources
-  status: ready
+- [x] T-121 Add generated filter, sort, and pagination primitives for product resources
+  status: done
   priority: high
   owner: codex
   branch:
   pr:
   last_updated: 2026-07-02
-  completed:
+  completed: 2026-07-02
   blocked_reason:
   notes:
     - 2026-07-02: current metadata includes searchable and sortable fields, but there is no stronger generated product UX for CRM or PM list exploration
     - 2026-07-02: this task should turn field metadata into reusable query and UI primitives instead of per-product table plumbing
+    - 2026-07-02: completed by generating list query contracts with cursor, limit, query, sort, and bounded filter fields; generated product pages now preserve list state through create, detail, edit, archive, and restore flows
+    - 2026-07-02: verified with `pnpm saas check generated-resource`, targeted tooling tests, generated todo and customer route tests, web todo flow tests, API and web typecheck, and the Postgres-backed `src/modules/generated/todo/__tests__/routes.integration.test.ts`
   files:
     - tools/saas/*
     - apps/api/src/modules/generated/*

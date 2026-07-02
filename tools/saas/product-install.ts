@@ -689,18 +689,17 @@ function renderProductResourceServerFile(
     `      requiredProductId: ${JSON.stringify(product.id)}`,
     "    }",
     "  );",
-    `  const items = workspace.activeOrganizationId`,
-    `    ? (await createResourceClient(createServerApiClient()).list(`,
+    "  const listQuery = readListQuery(searchParams);",
+    `  const listResponse = workspace.activeOrganizationId`,
+    `    ? await createResourceClient(createServerApiClient()).list(`,
     "        workspace.activeOrganizationId,",
-    resourceEntry.resource.archive.enabled
-      ? "        { archived: readArchivedFilter(searchParams) }"
-      : "        undefined",
-    "      )).items",
-    "    : [];",
+    "        listQuery",
+    "      )",
+    '    : { items: [], pageInfo: { hasMore: false, nextCursor: null } };',
     hasRelationPresentations
       ? [
           `  const relationPresentations = await resolve${pascalResource}RelationPresentations({`,
-          "    items,",
+          "    items: listResponse.items,",
           "    organizationId: workspace.activeOrganizationId,",
           "    projectId: workspace.activeProjectId,",
           "    workspace",
@@ -709,12 +708,11 @@ function renderProductResourceServerFile(
       : `  const relationPresentations = {};`,
     "",
     "  return {",
-    resourceEntry.resource.archive.enabled
-      ? "    archivedFilter: readArchivedFilter(searchParams),"
-      : "",
     "    draftValues: readDraftValues(searchParams),",
     "    feedback: readFeedback(searchParams),",
-    "    items,",
+    "    items: listResponse.items,",
+    "    listQuery,",
+    "    pageInfo: listResponse.pageInfo,",
     "    relationPresentations,",
     "    workspace",
     "  };",
@@ -739,6 +737,7 @@ function renderProductResourceServerFile(
     `      requiredProductId: ${JSON.stringify(product.id)}`,
     "    }",
     "  );",
+    "  const listQuery = readListQuery(input.searchParams);",
     `  const item = workspace.activeOrganizationId`,
     `    ? await createResourceClient(createServerApiClient()).get(`,
     "        workspace.activeOrganizationId,",
@@ -762,9 +761,7 @@ function renderProductResourceServerFile(
     "    draftValues: readDraftValues(input.searchParams),",
     "    feedback: readFeedback(input.searchParams),",
     "    item,",
-    resourceEntry.resource.archive.enabled
-      ? "    archivedFilter: readArchivedFilter(input.searchParams),"
-      : "",
+    "    listQuery,",
     "    relationPresentations,",
     "    workspace",
     "  };",
@@ -775,9 +772,7 @@ function renderProductResourceServerFile(
     "",
     '  const organizationId = String(formData.get("organizationId") ?? "");',
     '  const projectId = coerceString(formData.get("projectId"));',
-    resourceEntry.resource.archive.enabled
-      ? '  const archived = readArchivedFilterFromFormData(formData);'
-      : "",
+    "  const listQuery = readListQueryFromFormData(formData);",
     "",
     `  try {`,
     `    const payload = create${pascalResource}InputSchema.parse({`,
@@ -791,12 +786,12 @@ function renderProductResourceServerFile(
     "      payload",
     "    );",
     "",
-    `    const nextPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId${resourceEntry.resource.archive.enabled ? ", archived" : ""});`,
+    `    const nextPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, listQuery);`,
     "    revalidatePath(nextPath);",
     "    redirect(nextPath as never);",
     "  } catch (error) {",
     "    redirect(",
-    `      buildFailurePath(${JSON.stringify(resourceEntry.listPath)}, organizationId, projectId, ${resourceEntry.resource.archive.enabled ? "archived" : "undefined"}, {`,
+    `      buildFailurePath(${JSON.stringify(resourceEntry.listPath)}, organizationId, projectId, listQuery, {`,
     "        draftValues: buildDraftValues(formData),",
     '        feedback: getFeedbackMessage(error, "Unable to create this record right now.")',
     "      }) as never",
@@ -810,9 +805,7 @@ function renderProductResourceServerFile(
     `  const ${paramName} = String(formData.get(${JSON.stringify(paramName)}) ?? "");`,
     '  const organizationId = String(formData.get("organizationId") ?? "");',
     '  const projectId = coerceString(formData.get("projectId"));',
-    resourceEntry.resource.archive.enabled
-      ? '  const archived = readArchivedFilterFromFormData(formData);'
-      : "",
+    "  const listQuery = readListQueryFromFormData(formData);",
     "",
     `  try {`,
     `    const payload = update${pascalResource}InputSchema.parse({`,
@@ -827,14 +820,14 @@ function renderProductResourceServerFile(
     "      payload",
     "    );",
     "",
-    `    const nextPath = buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId${resourceEntry.resource.archive.enabled ? ", archived" : ""});`,
-    `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId${resourceEntry.resource.archive.enabled ? ", archived" : ""});`,
+    `    const nextPath = buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery, { includeCursor: true });`,
+    `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, listQuery);`,
     "    revalidatePath(nextPath);",
     "    revalidatePath(listPath);",
     "    redirect(nextPath as never);",
     "  } catch (error) {",
     "    redirect(",
-    `      buildFailurePath(buildResourceEditPath(${JSON.stringify(detailPath)}, ${paramName}), organizationId, projectId, ${resourceEntry.resource.archive.enabled ? "archived" : "undefined"}, {`,
+    `      buildFailurePath(buildResourceEditPath(${JSON.stringify(detailPath)}, ${paramName}), organizationId, projectId, listQuery, {`,
     "        draftValues: buildDraftValues(formData),",
     '        feedback: getFeedbackMessage(error, "Unable to save changes right now.")',
     "      }) as never",
@@ -850,6 +843,7 @@ function renderProductResourceServerFile(
           `  const ${paramName} = String(formData.get(${JSON.stringify(paramName)}) ?? "");`,
           '  const organizationId = String(formData.get("organizationId") ?? "");',
           '  const projectId = coerceString(formData.get("projectId"));',
+          "  const listQuery = readListQueryFromFormData(formData);",
           "",
           "  try {",
           "    await createResourceClient(createServerApiClient()).delete(",
@@ -857,12 +851,12 @@ function renderProductResourceServerFile(
           `      ${paramName}`,
           "    );",
           "",
-          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId);`,
+          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, listQuery);`,
           "    revalidatePath(listPath);",
           "    redirect(listPath as never);",
           "  } catch (error) {",
           "    redirect(",
-          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId), organizationId, projectId, undefined, {`,
+          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
           '        feedback: getFeedbackMessage(error, "Unable to delete this record right now.")',
           "      }) as never",
           "    );",
@@ -879,7 +873,7 @@ function renderProductResourceServerFile(
           `  const ${paramName} = String(formData.get(${JSON.stringify(paramName)}) ?? "");`,
           '  const organizationId = String(formData.get("organizationId") ?? "");',
           '  const projectId = coerceString(formData.get("projectId"));',
-          '  const archived = readArchivedFilterFromFormData(formData);',
+          "  const listQuery = readListQueryFromFormData(formData);",
           "",
           "  try {",
           "    await createResourceClient(createServerApiClient()).archive(",
@@ -887,20 +881,20 @@ function renderProductResourceServerFile(
           `      ${paramName}`,
           "    );",
           "",
-          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, archived);`,
+          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, listQuery);`,
           "    const detailPath = buildResourcePath(",
           `      ${JSON.stringify(detailPath)},`,
           `      ${paramName},`,
           "      organizationId,",
           "      projectId,",
-          '      archived === "only" ? "only" : "exclude"',
+          "      { ...listQuery, archived: listQuery.archived === \"only\" ? \"only\" : \"exclude\" }",
           "    );",
           "    revalidatePath(listPath);",
           "    revalidatePath(detailPath);",
           "    redirect(listPath as never);",
           "  } catch (error) {",
           "    redirect(",
-          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, archived), organizationId, projectId, archived, {`,
+          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
           '        feedback: getFeedbackMessage(error, "Unable to archive this record right now.")',
           "      }) as never",
           "    );",
@@ -913,7 +907,7 @@ function renderProductResourceServerFile(
           `  const ${paramName} = String(formData.get(${JSON.stringify(paramName)}) ?? "");`,
           '  const organizationId = String(formData.get("organizationId") ?? "");',
           '  const projectId = coerceString(formData.get("projectId"));',
-          '  const archived = readArchivedFilterFromFormData(formData);',
+          "  const listQuery = readListQueryFromFormData(formData);",
           "",
           "  try {",
           "    await createResourceClient(createServerApiClient()).unarchive(",
@@ -921,12 +915,12 @@ function renderProductResourceServerFile(
           `      ${paramName}`,
           "    );",
           "",
-          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, archived === "only" ? "exclude" : archived);`,
+          `    const listPath = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(organizationId, projectId, { ...listQuery, archived: listQuery.archived === "only" ? "exclude" : listQuery.archived });`,
           "    revalidatePath(listPath);",
-          `    redirect(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, "exclude") as never);`,
+          `    redirect(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);`,
           "  } catch (error) {",
           "    redirect(",
-          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, archived), organizationId, projectId, archived, {`,
+          `      buildFailurePath(buildResourcePath(${JSON.stringify(detailPath)}, ${paramName}, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {`,
           '        feedback: getFeedbackMessage(error, "Unable to restore this record right now.")',
           "      }) as never",
           "    );",
@@ -981,28 +975,37 @@ function renderProductResourceServerFile(
     `  ) as ${pascalResource}RelationPresentations;`,
     "}",
     "",
+    `type ${pascalResource}ListQuery = ${renderProductListQueryType(resourceEntry.resource)};`,
+    "",
     "function buildWorkspaceSuffix(",
     "  organizationId: string,",
-    "  projectId?: string,",
-    resourceEntry.resource.archive.enabled
-      ? '  archived?: "exclude" | "include" | "only"'
-      : "  archived?: never",
+    "  projectId: string | undefined,",
+    `  query: ${pascalResource}ListQuery,`,
+    "  options?: {",
+    "    includeCursor?: boolean;",
+    "  }",
     ") {",
-    "  const query = new URLSearchParams({ organizationId });",
+    "  const search = new URLSearchParams({ organizationId });",
     "",
     "  if (projectId) {",
-    '    query.set("projectId", projectId);',
+    '    search.set("projectId", projectId);',
     "  }",
-    resourceEntry.resource.archive.enabled
-      ? [
-          "",
-          "  if (archived) {",
-          '    query.set("archived", archived);',
-          "  }"
-        ].join("\n")
-      : "",
     "",
-    "  return `?${query.toString()}`;",
+    "  for (const [key, value] of Object.entries({",
+    ...renderProductListQueryEntries(resourceEntry.resource),
+    "  })) {",
+    "    if (value === undefined || value === null || value === \"\") {",
+    "      continue;",
+    "    }",
+    "",
+    "    search.set(key, String(value));",
+    "  }",
+    "",
+    "  if (options?.includeCursor && query.cursor) {",
+    '    search.set("cursor", query.cursor);',
+    "  }",
+    "",
+    "  return `?${search.toString()}`;",
     "}",
     "",
     "function buildResourcePath(",
@@ -1010,11 +1013,12 @@ function renderProductResourceServerFile(
     "  id: string,",
     "  organizationId: string,",
     "  projectId?: string,",
-    resourceEntry.resource.archive.enabled
-      ? '  archived?: "exclude" | "include" | "only"'
-      : "  archived?: never",
+    `  query?: ${pascalResource}ListQuery,`,
+    "  options?: {",
+    "    includeCursor?: boolean;",
+    "  }",
     ") {",
-    `  return \`${"${basePath}"}/${"${id}"}\${buildWorkspaceSuffix(organizationId, projectId${resourceEntry.resource.archive.enabled ? ", archived" : ""})}\`;`,
+    `  return \`${"${basePath}"}/${"${id}"}\${buildWorkspaceSuffix(organizationId, projectId, query ?? readDefaultListQuery(), options)}\`;`,
     "}",
     "",
     "function buildResourceEditPath(basePath: string, id: string) {",
@@ -1025,47 +1029,79 @@ function renderProductResourceServerFile(
     "  basePath: string,",
     "  organizationId: string,",
     "  projectId: string | undefined,",
-    resourceEntry.resource.archive.enabled
-      ? '  archived: "exclude" | "include" | "only" | undefined,'
-      : "  archived: never,",
+    `  query: ${pascalResource}ListQuery,`,
     "  input: {",
     "    draftValues?: Record<string, string | undefined>;",
     "    feedback: string;",
     "  }",
     ") {",
-    "  const query = new URLSearchParams({ organizationId });",
+    "  const search = new URLSearchParams({ organizationId });",
     "",
     "  if (projectId) {",
-    '    query.set("projectId", projectId);',
+    '    search.set("projectId", projectId);',
     "  }",
-    resourceEntry.resource.archive.enabled
-      ? [
-          "",
-          "  if (archived) {",
-          '    query.set("archived", archived);',
-          "  }"
-        ].join("\n")
-      : "",
     "",
-    '  query.set("feedback", input.feedback);',
+    "  for (const [key, value] of Object.entries({",
+    ...renderProductListQueryEntries(resourceEntry.resource),
+    "  })) {",
+    "    if (value === undefined || value === null || value === \"\") {",
+    "      continue;",
+    "    }",
+    "",
+    "    search.set(key, String(value));",
+    "  }",
+    "",
+    '  search.set("feedback", input.feedback);',
     "",
     "  for (const [key, value] of Object.entries(input.draftValues ?? {})) {",
     "    if (value !== undefined && value.length > 0) {",
-    '      query.set(`draft_${key}`, value);',
+    '      search.set(`draft_${key}`, value);',
     "    }",
     "  }",
     "",
-    "  return `${basePath}?${query.toString()}`;",
+    "  return `${basePath}?${search.toString()}`;",
     "}",
     "",
     "function getSearchValue(value: string | string[] | undefined) {",
     '  return Array.isArray(value) ? value[0] : value;',
     "}",
     "",
+    "function readAllowedValue<T extends string>(value: string | undefined, allowed: readonly T[]) {",
+    "  return value && allowed.includes(value as T) ? (value as T) : undefined;",
+    "}",
+    "",
+    "function readPositiveInteger(value: string | undefined) {",
+    "  if (!value) {",
+    "    return undefined;",
+    "  }",
+    "",
+    "  const parsed = Number.parseInt(value, 10);",
+    "",
+    "  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;",
+    "}",
+    "",
     "function readFeedback(searchParams: Record<string, string | string[] | undefined>) {",
     '  const feedback = getSearchValue(searchParams.feedback);',
     "",
     "  return feedback ? feedback : undefined;",
+    "}",
+    "",
+    `function readDefaultListQuery(): ${pascalResource}ListQuery {`,
+    "  return {",
+    ...renderProductDefaultListQueryLines(resourceEntry.resource),
+    "  };",
+    "}",
+    "",
+    `function readListQuery(searchParams: Record<string, string | string[] | undefined>): ${pascalResource}ListQuery {`,
+    "  return {",
+    ...renderProductReadListQueryLines(resourceEntry.resource),
+    "  };",
+    "}",
+    "",
+    `function readListQueryFromFormData(formData: FormData): ${pascalResource}ListQuery {`,
+    "  return {",
+    ...renderProductReadFormListQueryLines(resourceEntry.resource),
+    "  };",
     "}",
     resourceEntry.resource.archive.enabled
       ? [
@@ -1077,7 +1113,7 @@ function renderProductResourceServerFile(
           "}",
           "",
           'function readArchivedFilterFromFormData(formData: FormData): "exclude" | "include" | "only" {',
-          '  const value = coerceString(formData.get("archived"));',
+          '  const value = coerceString(formData.get("list_archived"));',
           "",
           '  return value === "include" || value === "only" ? value : "exclude";',
           "}"
@@ -1178,25 +1214,22 @@ function renderProductResourceListPage(
     "    installedProducts: data.workspace.activeOrganizationInstalledProducts,",
     `    preferredProductId: ${JSON.stringify(product.id)}`,
     "  });",
-    resourceEntry.resource.archive.enabled
-      ? [
-          `  const activeHref = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(`,
-          "    data.workspace.activeOrganizationId ?? \"\",",
-          "    data.workspace.activeProjectId ?? undefined,",
-          '    "exclude"',
-          "  );",
-          `  const archivedHref = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(`,
-          "    data.workspace.activeOrganizationId ?? \"\",",
-          "    data.workspace.activeProjectId ?? undefined,",
-          '    "only"',
-          "  );",
-          `  const allHref = ${JSON.stringify(resourceEntry.listPath)} + buildWorkspaceSuffix(`,
-          "    data.workspace.activeOrganizationId ?? \"\",",
-          "    data.workspace.activeProjectId ?? undefined,",
-          '    "include"',
-          "  );"
-        ].join("\n")
-      : "",
+    `  const resourceQuery = buildWorkspaceSuffix(`,
+    "    data.workspace.activeOrganizationId ?? \"\",",
+    "    data.workspace.activeProjectId ?? undefined,",
+    "    data.listQuery,",
+    "    { includeCursor: true }",
+    "  ).slice(1);",
+    "  const nextPageHref =",
+    "    data.pageInfo.hasMore && data.pageInfo.nextCursor && data.workspace.activeOrganizationId",
+    `      ? ${JSON.stringify(resourceEntry.listPath)} +`,
+    "        buildWorkspaceSuffix(",
+    "          data.workspace.activeOrganizationId,",
+    "          data.workspace.activeProjectId ?? undefined,",
+    "          { ...data.listQuery, cursor: data.pageInfo.nextCursor },",
+    "          { includeCursor: true }",
+    "        )",
+    "      : null;",
     "",
     "  return (",
     "    <AppShell",
@@ -1216,56 +1249,58 @@ function renderProductResourceListPage(
     `        <${pascalResource}Form action={create${pascalResource}WorkspaceAction} defaultValues={data.draftValues} submitLabel="Create ${resourceEntry.resource.label}">`,
     '          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
     '          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />',
-    resourceEntry.resource.archive.enabled
-      ? '          <input name="archived" type="hidden" value={data.archivedFilter} />'
-      : "",
+    ...renderProductListHiddenInputs(resourceEntry.resource),
     "          {data.feedback ? (",
     '            <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>',
     "          ) : null}",
     `        </${pascalResource}Form>`,
-    resourceEntry.resource.archive.enabled
-      ? [
-          '        <div className="flex flex-wrap gap-2 text-sm">',
-          '          <a className="rounded-md border border-[var(--border)] px-3 py-2" href={activeHref}>Active</a>',
-          '          <a className="rounded-md border border-[var(--border)] px-3 py-2" href={archivedHref}>Archived</a>',
-          '          <a className="rounded-md border border-[var(--border)] px-3 py-2" href={allHref}>All</a>',
-          '          <span className="self-center text-[var(--muted)]">Viewing: {data.archivedFilter}</span>',
-          "        </div>"
-        ].join("\n")
-      : "",
+    ...renderProductListFilterControls(resourceEntry.resource),
     `        <${pascalResource}Screen`,
     "          items={data.items}",
     "          organizationId={data.workspace.activeOrganizationId ?? undefined}",
     "          projectId={data.workspace.activeProjectId ?? undefined}",
     "          relationPresentations={data.relationPresentations}",
+    "          resourceQuery={resourceQuery}",
     `          resourceBasePath=${JSON.stringify(resourceEntry.listPath)}`,
     "        />",
+    "        {nextPageHref ? (",
+    '          <a className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" href={nextPageHref}>Next Page</a>',
+    "        ) : null}",
     "      </div>",
     "    </AppShell>",
     "  );",
     "}",
-    resourceEntry.resource.archive.enabled
-      ? [
-          "",
-          "function buildWorkspaceSuffix(",
-          "  organizationId: string,",
-          "  projectId?: string,",
-          '  archived?: "exclude" | "include" | "only"',
-          ") {",
-          "  const query = new URLSearchParams({ organizationId });",
-          "",
-          "  if (projectId) {",
-          '    query.set("projectId", projectId);',
-          "  }",
-          "",
-          "  if (archived) {",
-          '    query.set("archived", archived);',
-          "  }",
-          "",
-          "  return `?${query.toString()}`;",
-          "}"
-        ].join("\n")
-      : ""
+    "",
+    "function buildWorkspaceSuffix(",
+    "  organizationId: string,",
+    "  projectId: string | undefined,",
+    "  query: Record<string, string | number | boolean | undefined> & { cursor?: string },",
+    "  options?: {",
+    "    includeCursor?: boolean;",
+    "  }",
+    ") {",
+    "  const search = new URLSearchParams({ organizationId });",
+    "",
+    "  if (projectId) {",
+    '    search.set("projectId", projectId);',
+    "  }",
+    "",
+    "  for (const [key, value] of Object.entries({",
+    ...renderProductListQueryEntries(resourceEntry.resource),
+    "  })) {",
+    "    if (value === undefined || value === null || value === \"\") {",
+    "      continue;",
+    "    }",
+    "",
+    "    search.set(key, String(value));",
+    "  }",
+    "",
+    "  if (options?.includeCursor && query.cursor) {",
+    '    search.set("cursor", query.cursor);',
+    "  }",
+    "",
+    "  return `?${search.toString()}`;",
+    "}"
   ].join("\n");
 }
 
@@ -1317,9 +1352,8 @@ function renderProductResourceDetailPage(
     "  const workspaceSuffix = buildWorkspaceSuffix(",
     "    data.workspace.activeOrganizationId ?? \"\",",
     "    data.workspace.activeProjectId ?? undefined,",
-    resourceEntry.resource.archive.enabled
-      ? "    data.archivedFilter"
-      : "    undefined",
+    "    data.listQuery,",
+    "    { includeCursor: true }",
     "  );",
     `  const listHref = ${JSON.stringify(resourceEntry.listPath)} + workspaceSuffix;`,
     `  const editHref = data.item ? ${JSON.stringify(resourceEntry.listPath)} + \`/\${data.item.id}/edit\${workspaceSuffix}\` : listHref;`,
@@ -1358,9 +1392,9 @@ function renderProductResourceDetailPage(
           `              <input name="${paramName}" type="hidden" value={data.item.id} />`,
           '              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
           '              <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />',
-          resourceEntry.resource.archive.enabled
-            ? '              <input name="archived" type="hidden" value={data.archivedFilter} />'
-            : "",
+          ...renderProductListHiddenInputs(resourceEntry.resource).map((line) =>
+            line.replace("data.", "data.")
+          ),
           '              <button className="rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Delete ' +
             resourceEntry.resource.label +
             "</button>",
@@ -1373,7 +1407,7 @@ function renderProductResourceDetailPage(
           `              <input name="${paramName}" type="hidden" value={data.item.id} />`,
           '              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
           '              <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />',
-          '              <input name="archived" type="hidden" value={data.archivedFilter} />',
+          ...renderProductListHiddenInputs(resourceEntry.resource),
           `              <button className="rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">{data.item.${resourceEntry.resource.archive.field} ? "Restore ${resourceEntry.resource.label}" : "Archive ${resourceEntry.resource.label}"}</button>`,
           "            </form>"
         ].join("\n")
@@ -1420,26 +1454,33 @@ function renderProductResourceDetailPage(
     "",
     "function buildWorkspaceSuffix(",
     "  organizationId: string,",
-    "  projectId?: string,",
-    resourceEntry.resource.archive.enabled
-      ? '  archived?: "exclude" | "include" | "only"'
-      : "  archived?: never",
+    "  projectId: string | undefined,",
+    "  query: Record<string, string | number | boolean | undefined> & { cursor?: string },",
+    "  options?: {",
+    "    includeCursor?: boolean;",
+    "  }",
     ") {",
-    "  const query = new URLSearchParams({ organizationId });",
+    "  const search = new URLSearchParams({ organizationId });",
     "",
     "  if (projectId) {",
-    '    query.set("projectId", projectId);',
+    '    search.set("projectId", projectId);',
     "  }",
-    resourceEntry.resource.archive.enabled
-      ? [
-          "",
-          "  if (archived) {",
-          '    query.set("archived", archived);',
-          "  }"
-        ].join("\n")
-      : "",
     "",
-    "  return `?${query.toString()}`;",
+    "  for (const [key, value] of Object.entries({",
+    ...renderProductListQueryEntries(resourceEntry.resource),
+    "  })) {",
+    "    if (value === undefined || value === null || value === \"\") {",
+    "      continue;",
+    "    }",
+    "",
+    "    search.set(key, String(value));",
+    "  }",
+    "",
+    "  if (options?.includeCursor && query.cursor) {",
+    '    search.set("cursor", query.cursor);',
+    "  }",
+    "",
+    "  return `?${search.toString()}`;",
     "}"
   ].join("\n");
 }
@@ -1519,9 +1560,7 @@ function renderProductResourceEditPage(
     `          <input name="${paramName}" type="hidden" value={data.item?.id ?? resolvedParams.${paramName}} />`,
     '          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
     '          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />',
-    resourceEntry.resource.archive.enabled
-      ? '          <input name="archived" type="hidden" value={data.archivedFilter} />'
-      : "",
+    ...renderProductListHiddenInputs(resourceEntry.resource),
     `        </${pascalResource}Form>`,
     "      </div>",
     "    </AppShell>",
@@ -1581,6 +1620,297 @@ function renderDraftSearchValueLines(resource: GeneratedProductResource["resourc
 
       return `${field.name}: getSearchValue(searchParams.${queryKey}) ?? undefined,`;
     });
+}
+
+function getProductListFilterFields(resource: GeneratedProductResource["resource"]) {
+  return resource.api.filters
+    .map((fieldName) => resource.fields.find((field) => field.name === fieldName))
+    .filter(
+      (
+        field
+      ): field is GeneratedProductResource["resource"]["fields"][number] =>
+        field !== undefined
+    );
+}
+
+function getProductSortableFields(resource: GeneratedProductResource["resource"]) {
+  const fields = [
+    {
+      name: "createdAt",
+      type: "datetime"
+    },
+    {
+      name: "updatedAt",
+      type: "datetime"
+    },
+    ...resource.fields.filter(
+      (field) =>
+        field.required &&
+        field.sortable &&
+        ["datetime", "email", "enum", "string", "uuid"].includes(field.type)
+    )
+  ];
+
+  return fields;
+}
+
+function renderProductListQueryType(resource: GeneratedProductResource["resource"]) {
+  const sortValues = getProductSortableFields(resource)
+    .map((field) => JSON.stringify(field.name))
+    .join(" | ");
+
+  return [
+    "{",
+    resource.archive.enabled
+      ? '  archived: "exclude" | "include" | "only";'
+      : "",
+    "  cursor?: string;",
+    "  limit?: number;",
+    "  query?: string;",
+    `  sortBy: ${sortValues};`,
+    '  sortDirection: "asc" | "desc";',
+    ...getProductListFilterFields(resource).map(
+      (field) => `  ${field.name}?: ${renderProductQueryFieldType(field)};`
+    ),
+    "}"
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function renderProductQueryFieldType(
+  field: GeneratedProductResource["resource"]["fields"][number]
+) {
+  switch (field.type) {
+    case "boolean":
+      return "boolean";
+    case "enum":
+      return (field.values ?? []).map((value) => JSON.stringify(value)).join(" | ");
+    default:
+      return "string";
+  }
+}
+
+function renderProductReadListQueryLines(resource: GeneratedProductResource["resource"]) {
+  const sortValues = getProductSortableFields(resource).map((field) => field.name);
+  const defaultSortBy = sortValues.includes("createdAt")
+    ? "createdAt"
+    : sortValues[0] ?? "createdAt";
+
+  return [
+    resource.archive.enabled ? "    archived: readArchivedFilter(searchParams)," : "",
+    '    cursor: getSearchValue(searchParams.cursor) ?? undefined,',
+    "    limit: readPositiveInteger(getSearchValue(searchParams.limit)),",
+    "    query: getSearchValue(searchParams.query) ?? undefined,",
+    `    sortBy: readAllowedValue(getSearchValue(searchParams.sortBy), [${sortValues
+      .map((value) => JSON.stringify(value))
+      .join(", ")}]) ?? ${JSON.stringify(defaultSortBy)},`,
+    '    sortDirection: readAllowedValue(getSearchValue(searchParams.sortDirection), ["asc", "desc"]) ?? "desc",',
+    ...getProductListFilterFields(resource).map((field) =>
+      `    ${field.name}: ${renderProductReadSearchQueryValue(field)},`
+    )
+  ].filter(Boolean);
+}
+
+function renderProductReadFormListQueryLines(resource: GeneratedProductResource["resource"]) {
+  const sortValues = getProductSortableFields(resource).map((field) => field.name);
+  const defaultSortBy = sortValues.includes("createdAt")
+    ? "createdAt"
+    : sortValues[0] ?? "createdAt";
+
+  return [
+    resource.archive.enabled ? "    archived: readArchivedFilterFromFormData(formData)," : "",
+    "    cursor: undefined,",
+    '    limit: readPositiveInteger(coerceString(formData.get("list_limit"))),',
+    '    query: coerceString(formData.get("list_query")),',
+    `    sortBy: readAllowedValue(coerceString(formData.get("list_sortBy")), [${sortValues
+      .map((value) => JSON.stringify(value))
+      .join(", ")}]) ?? ${JSON.stringify(defaultSortBy)},`,
+    '    sortDirection: readAllowedValue(coerceString(formData.get("list_sortDirection")), ["asc", "desc"]) ?? "desc",',
+    ...getProductListFilterFields(resource).map((field) =>
+      `    ${field.name}: ${renderProductReadFormQueryValue(field)},`
+    )
+  ].filter(Boolean);
+}
+
+function renderProductReadSearchQueryValue(
+  field: GeneratedProductResource["resource"]["fields"][number]
+) {
+  const access = `getSearchValue(searchParams.${field.name})`;
+
+  if (field.type === "boolean") {
+    return `${access} === "true" ? true : ${access} === "false" ? false : undefined`;
+  }
+
+  if (field.type === "enum" && field.values) {
+    return `readAllowedValue(${access}, [${field.values
+      .map((value) => JSON.stringify(value))
+      .join(", ")}]) ?? undefined`;
+  }
+
+  return `${access} ?? undefined`;
+}
+
+function renderProductReadFormQueryValue(
+  field: GeneratedProductResource["resource"]["fields"][number]
+) {
+  const access = `coerceString(formData.get(${JSON.stringify(`list_${field.name}`)}))`;
+
+  if (field.type === "boolean") {
+    return `${access} === "true" ? true : ${access} === "false" ? false : undefined`;
+  }
+
+  if (field.type === "enum" && field.values) {
+    return `readAllowedValue(${access}, [${field.values
+      .map((value) => JSON.stringify(value))
+      .join(", ")}]) ?? undefined`;
+  }
+
+  return access;
+}
+
+function renderProductListQueryEntries(resource: GeneratedProductResource["resource"]) {
+  return [
+    resource.archive.enabled ? "    archived: query.archived," : "",
+    "    query: query.query,",
+    "    limit: query.limit,",
+    '    sortBy: query.sortBy !== "createdAt" ? query.sortBy : undefined,',
+    '    sortDirection: query.sortDirection !== "desc" ? query.sortDirection : undefined,',
+    ...getProductListFilterFields(resource).map(
+      (field) => `    ${field.name}: query.${field.name},`
+    )
+  ].filter(Boolean);
+}
+
+function renderProductListHiddenInputs(resource: GeneratedProductResource["resource"]) {
+  return [
+    resource.archive.enabled
+      ? '          <input name="list_archived" type="hidden" value={data.listQuery.archived} />'
+      : "",
+    '          <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />',
+    '          <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />',
+    '          <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />',
+    '          <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />',
+    ...getProductListFilterFields(resource).map((field) => {
+      if (field.type === "boolean") {
+        return `          <input name="list_${field.name}" type="hidden" value={data.listQuery.${field.name} === undefined ? "" : data.listQuery.${field.name} ? "true" : "false"} />`;
+      }
+
+      return `          <input name="list_${field.name}" type="hidden" value={data.listQuery.${field.name} ?? ""} />`;
+    })
+  ].filter(Boolean);
+}
+
+function renderProductListFilterControls(resource: GeneratedProductResource["resource"]) {
+  const controls: string[] = [
+    '        <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">',
+    '          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />',
+    '          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />'
+  ];
+
+  if (resource.archive.enabled) {
+    controls.push(
+      '          <label className="grid gap-2">',
+      "            <span>Archived</span>",
+      '            <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.archived} name="archived">',
+      '              <option value="exclude">Active</option>',
+      '              <option value="include">All</option>',
+      '              <option value="only">Archived</option>',
+      "            </select>",
+      "          </label>"
+    );
+  }
+
+  controls.push(
+    '          <label className="grid gap-2">',
+    "            <span>Search</span>",
+    '            <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.query ?? ""} name="query" type="text" />',
+    "          </label>",
+    '          <div className="grid gap-4 md:grid-cols-2">',
+    '            <label className="grid gap-2">',
+    "              <span>Sort By</span>",
+    '              <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortBy} name="sortBy">'
+  );
+
+  for (const field of getProductSortableFields(resource)) {
+    controls.push(
+      `                <option value="${field.name}">${toTitleCase(field.name)}</option>`
+    );
+  }
+
+  controls.push(
+    "              </select>",
+    "            </label>",
+    '            <label className="grid gap-2">',
+    "              <span>Sort Direction</span>",
+    '              <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortDirection} name="sortDirection">',
+    '                <option value="desc">Descending</option>',
+    '                <option value="asc">Ascending</option>',
+    "              </select>",
+    "            </label>",
+    "          </div>",
+    '          <label className="grid gap-2">',
+    "            <span>Page Size</span>",
+    '            <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.limit?.toString() ?? "25"} name="limit">',
+    '              <option value="10">10</option>',
+    '              <option value="25">25</option>',
+    '              <option value="50">50</option>',
+    '              <option value="100">100</option>',
+    "            </select>",
+    "          </label>"
+  );
+
+  for (const field of getProductListFilterFields(resource)) {
+    const label = toTitleCase(field.name);
+
+    if (field.type === "enum" && field.values) {
+      controls.push(
+        '          <label className="grid gap-2">',
+        `            <span>${label}</span>`,
+        `            <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.${field.name} ?? ""} name="${field.name}">`,
+        '              <option value="">Any</option>',
+        ...field.values.map(
+          (value) => `              <option value="${value}">${toTitleCase(value)}</option>`
+        ),
+        "            </select>",
+        "          </label>"
+      );
+      continue;
+    }
+
+    controls.push(
+      '          <label className="grid gap-2">',
+      `            <span>${label}</span>`,
+      `            <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.${field.name} ?? ""} name="${field.name}" type="text" />`,
+      "          </label>"
+    );
+  }
+
+  controls.push(
+    '          <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Apply Filters</button>',
+    "        </form>"
+  );
+
+  return controls;
+}
+
+function renderProductDefaultListQueryLines(resource: GeneratedProductResource["resource"]) {
+  const sortValues = getProductSortableFields(resource).map((field) => field.name);
+  const defaultSortBy = sortValues.includes("createdAt")
+    ? "createdAt"
+    : sortValues[0] ?? "createdAt";
+
+  return [
+    resource.archive.enabled ? '    archived: "exclude",' : "",
+    "    cursor: undefined,",
+    "    limit: undefined,",
+    "    query: undefined,",
+    `    sortBy: ${JSON.stringify(defaultSortBy)},`,
+    '    sortDirection: "desc",',
+    ...getProductListFilterFields(resource).map(
+      (field) => `    ${field.name}: undefined,`
+    )
+  ].filter(Boolean);
 }
 
 function renderDraftFormValueLines(resource: GeneratedProductResource["resource"]) {

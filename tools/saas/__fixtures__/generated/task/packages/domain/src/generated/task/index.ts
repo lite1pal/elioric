@@ -37,14 +37,27 @@ export const updateTaskInputSchema = z.object({
   assigneeId: z.string().uuid().optional()
 });
 
-export const listTasksInputSchema = z.object({
+export const taskPageInfoSchema = z.object({
+  hasMore: z.boolean(),
+  nextCursor: z.string().nullable()
+});
 
-  cursor: z.string().uuid().optional(),
+export const listTasksInputSchema = z.object({
+  cursor: z.string().min(1).optional(),
   limit: z.number().int().positive().max(100).optional(),
-  query: z.string().trim().min(1).optional()
+  query: z.string().trim().min(1).optional(),
+  sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc")
+});
+
+export const listTasksResponseSchema = z.object({
+  items: z.array(taskRecordSchema),
+  pageInfo: taskPageInfoSchema
 });
 
 export type TaskRecord = z.infer<typeof taskRecordSchema>;
+export type TaskPageInfo = z.infer<typeof taskPageInfoSchema>;
 export type CreateTaskInput = z.infer<typeof createTaskInputSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>;
 export type ListTasksInput = z.infer<typeof listTasksInputSchema>;
+export type ListTasksResponse = z.infer<typeof listTasksResponseSchema>;

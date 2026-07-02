@@ -1,6 +1,6 @@
-import type { TodoRecord } from "@auditrail/domain/generated/todo";
+import type { TodoRecord, ListTodosInput, ListTodosResponse } from "@auditrail/domain/generated/todo";
 import { todoTable } from "@auditrail/db/schema";
-import { and, desc, eq, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import type { AppDatabase } from "../../../plugins/database.js";
 import type { TodoRepo } from "./repo.js";
 export function createPostgresTodoRepo(db: AppDatabase): TodoRepo {
@@ -41,9 +41,11 @@ export function createPostgresTodoRepo(db: AppDatabase): TodoRepo {
     async list(input) {
       const limit = Math.min(input.filters.limit ?? 50, 100);
       const pattern = input.filters.query ? `%${input.filters.query}%` : undefined;
+      const sortBy = input.filters.sortBy ?? "createdAt";
+      const sortDirection = input.filters.sortDirection ?? "desc";
       const archived = input.filters.archived ?? "exclude";
       const [cursorRecord] = input.filters.cursor ? await db.select({
-        createdAt: todoTable.createdAt,
+        sortValue: resolveGeneratedListSortColumn(sortBy),
         id: todoTable.id
       }).from(todoTable).where(
         and(
@@ -51,6 +53,9 @@ export function createPostgresTodoRepo(db: AppDatabase): TodoRepo {
           eq(todoTable.organizationId, input.organizationId)
         )
       ).limit(1) : [];
+      if (input.filters.cursor && !cursorRecord) {
+        throw new Error("invalid_cursor");
+      }
       const records = await db.select().from(todoTable).where(
         and(
           eq(todoTable.organizationId, input.organizationId),
@@ -59,23 +64,30 @@ export function createPostgresTodoRepo(db: AppDatabase): TodoRepo {
             : archived === "include"
               ? undefined
               : isNull(todoTable.archivedAt),
+          input.filters.status !== undefined ? eq(todoTable.status, input.filters.status) : undefined,
           pattern
             ? or(
       ilike(sql`cast(${todoTable.title} as text)`, pattern)
             )
             : undefined,
           cursorRecord
-            ? or(
-                lt(todoTable.createdAt, cursorRecord.createdAt),
-                and(
-                  eq(todoTable.createdAt, cursorRecord.createdAt),
-                  lt(todoTable.id, cursorRecord.id)
-                )
-              )
+            ? buildGeneratedListCursorClause({
+                cursorRecord,
+                sortBy,
+                sortDirection
+              })
             : undefined
         )
-      ).orderBy(desc(todoTable.createdAt), desc(todoTable.id)).limit(limit);
-      return records.map(toTodoRecord);
+      ).orderBy(...resolveGeneratedListOrder(sortBy, sortDirection)).limit(limit + 1);
+      const hasMore = records.length > limit;
+      const pageRecords = hasMore ? records.slice(0, limit) : records;
+      return {
+        items: pageRecords.map(toTodoRecord),
+        pageInfo: {
+          hasMore,
+          nextCursor: hasMore ? pageRecords.at(-1)?.id ?? null : null
+        }
+      };
     },
     async unarchive(input) {
       const [record] = await db.update(todoTable).set({
@@ -107,6 +119,90 @@ export function createPostgresTodoRepo(db: AppDatabase): TodoRepo {
       return record ? toTodoRecord(record) : undefined;
     }
   };
+}
+function resolveGeneratedListSortColumn(
+  sortBy: ListTodosInput["sortBy"] extends infer T ? NonNullable<T> : never
+) {
+  switch (sortBy) {
+    case "createdAt":
+      return todoTable.createdAt;
+    case "updatedAt":
+      return todoTable.updatedAt;
+    case "title":
+      return todoTable.title;
+    default:
+      return todoTable.createdAt;
+  }
+}
+function resolveGeneratedListOrder(
+  sortBy: ListTodosInput["sortBy"] extends infer T ? NonNullable<T> : never,
+  sortDirection: "asc" | "desc"
+) {
+  const sortColumn = resolveGeneratedListSortColumn(sortBy);
+  return sortDirection === "asc"
+    ? [asc(sortColumn), asc(todoTable.id)] as const
+    : [desc(sortColumn), desc(todoTable.id)] as const;
+}
+function buildGeneratedListCursorClause(input: {
+  cursorRecord: {
+    id: string;
+    sortValue: unknown;
+  };
+  sortBy: ListTodosInput["sortBy"] extends infer T ? NonNullable<T> : never;
+  sortDirection: "asc" | "desc";
+}) {
+  switch (input.sortBy) {
+    case "createdAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(todoTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(todoTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(todoTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(todoTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(todoTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(todoTable.id, input.cursorRecord.id)
+            )
+          );
+    case "updatedAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(todoTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(todoTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(todoTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(todoTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(todoTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(todoTable.id, input.cursorRecord.id)
+            )
+          );
+    case "title":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(todoTable.title, input.cursorRecord.sortValue as string),
+            and(
+              eq(todoTable.title, input.cursorRecord.sortValue as string),
+              gt(todoTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(todoTable.title, input.cursorRecord.sortValue as string),
+            and(
+              eq(todoTable.title, input.cursorRecord.sortValue as string),
+              lt(todoTable.id, input.cursorRecord.id)
+            )
+          );
+    default:
+      return undefined;
+  }
 }
 function toTodoRecord(
   record: typeof todoTable.$inferSelect

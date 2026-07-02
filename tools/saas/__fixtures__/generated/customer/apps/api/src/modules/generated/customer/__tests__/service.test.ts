@@ -21,7 +21,7 @@ describe("createCustomerService", () => {
         return undefined;
       },
       async list() {
-        return [];
+        return { items: [], pageInfo: { hasMore: false, nextCursor: null } };
       },
       async update() {
         return undefined;

@@ -13,7 +13,9 @@
       "navLabel": "Todos",
       "resource": {
         "api": {
-          "filters": [],
+          "filters": [
+            "status"
+          ],
           "pagination": true,
           "prefix": "/v1/organizations/:organizationId/todos",
           "public": false
@@ -79,6 +81,20 @@
         "indexes": [],
         "label": "Todo",
         "ownership": "organization",
+        "policy": {
+          "archive": {
+            "mode": "organization-role"
+          },
+          "read": {
+            "mode": "organization-role"
+          },
+          "workflow": {
+            "mode": "organization-role"
+          },
+          "write": {
+            "mode": "organization-role"
+          }
+        },
         "permissions": {},
         "pluralLabel": "Todos",
         "relations": [],
@@ -87,6 +103,16 @@
           "createdAtField": "createdAt",
           "enabled": true,
           "updatedAtField": "updatedAt"
+        },
+        "workflow": {
+          "field": "status",
+          "initial": "todo",
+          "transitions": {
+            "todo": [
+              "done"
+            ],
+            "done": []
+          }
         },
         "ui": {
           "createPage": false,

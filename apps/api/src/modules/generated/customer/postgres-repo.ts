@@ -1,10 +1,8 @@
-import type { CustomerRecord } from "@auditrail/domain/generated/customer";
+import type { CustomerRecord, ListCustomersInput, ListCustomersResponse } from "@auditrail/domain/generated/customer";
 import { customerTable } from "@auditrail/db/schema";
-import { and, desc, eq, ilike, lt, or, sql } from "drizzle-orm";
-
+import { and, asc, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import type { AppDatabase } from "../../../plugins/database.js";
 import type { CustomerRepo } from "./repo.js";
-
 export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
   return {
     async create(input) {
@@ -17,7 +15,6 @@ export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
         externalId: input.data.externalId,
         lastContactedAt: input.data.lastContactedAt ? new Date(input.data.lastContactedAt) : undefined,
       }).returning();
-
       return toCustomerRecord(record);
     },
     async findById(input) {
@@ -27,14 +24,15 @@ export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
           eq(customerTable.organizationId, input.organizationId)
         )
       ).limit(1);
-
       return record ? toCustomerRecord(record) : undefined;
     },
     async list(input) {
       const limit = Math.min(input.filters.limit ?? 50, 100);
       const pattern = input.filters.query ? `%${input.filters.query}%` : undefined;
+      const sortBy = input.filters.sortBy ?? "createdAt";
+      const sortDirection = input.filters.sortDirection ?? "desc";
       const [cursorRecord] = input.filters.cursor ? await db.select({
-        createdAt: customerTable.createdAt,
+        sortValue: resolveGeneratedListSortColumn(sortBy),
         id: customerTable.id
       }).from(customerTable).where(
         and(
@@ -42,6 +40,9 @@ export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
           eq(customerTable.organizationId, input.organizationId)
         )
       ).limit(1) : [];
+      if (input.filters.cursor && !cursorRecord) {
+        throw new Error("invalid_cursor");
+      }
       const records = await db.select().from(customerTable).where(
         and(
           eq(customerTable.organizationId, input.organizationId),
@@ -51,18 +52,23 @@ export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
             )
             : undefined,
           cursorRecord
-            ? or(
-                lt(customerTable.createdAt, cursorRecord.createdAt),
-                and(
-                  eq(customerTable.createdAt, cursorRecord.createdAt),
-                  lt(customerTable.id, cursorRecord.id)
-                )
-              )
+            ? buildGeneratedListCursorClause({
+                cursorRecord,
+                sortBy,
+                sortDirection
+              })
             : undefined
         )
-      ).orderBy(desc(customerTable.createdAt), desc(customerTable.id)).limit(limit);
-
-      return records.map(toCustomerRecord);
+      ).orderBy(...resolveGeneratedListOrder(sortBy, sortDirection)).limit(limit + 1);
+      const hasMore = records.length > limit;
+      const pageRecords = hasMore ? records.slice(0, limit) : records;
+      return {
+        items: pageRecords.map(toCustomerRecord),
+        pageInfo: {
+          hasMore,
+          nextCursor: hasMore ? pageRecords.at(-1)?.id ?? null : null
+        }
+      };
     },
     async update(input) {
       const [record] = await db.update(customerTable).set({
@@ -79,12 +85,94 @@ export function createPostgresCustomerRepo(db: AppDatabase): CustomerRepo {
           eq(customerTable.organizationId, input.organizationId)
         )
       ).returning();
-
       return record ? toCustomerRecord(record) : undefined;
     }
   };
 }
-
+function resolveGeneratedListSortColumn(
+  sortBy: ListCustomersInput["sortBy"] extends infer T ? NonNullable<T> : never
+) {
+  switch (sortBy) {
+    case "createdAt":
+      return customerTable.createdAt;
+    case "updatedAt":
+      return customerTable.updatedAt;
+    case "email":
+      return customerTable.email;
+    default:
+      return customerTable.createdAt;
+  }
+}
+function resolveGeneratedListOrder(
+  sortBy: ListCustomersInput["sortBy"] extends infer T ? NonNullable<T> : never,
+  sortDirection: "asc" | "desc"
+) {
+  const sortColumn = resolveGeneratedListSortColumn(sortBy);
+  return sortDirection === "asc"
+    ? [asc(sortColumn), asc(customerTable.id)] as const
+    : [desc(sortColumn), desc(customerTable.id)] as const;
+}
+function buildGeneratedListCursorClause(input: {
+  cursorRecord: {
+    id: string;
+    sortValue: unknown;
+  };
+  sortBy: ListCustomersInput["sortBy"] extends infer T ? NonNullable<T> : never;
+  sortDirection: "asc" | "desc";
+}) {
+  switch (input.sortBy) {
+    case "createdAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(customerTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(customerTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(customerTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(customerTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(customerTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(customerTable.id, input.cursorRecord.id)
+            )
+          );
+    case "updatedAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(customerTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(customerTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(customerTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(customerTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(customerTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(customerTable.id, input.cursorRecord.id)
+            )
+          );
+    case "email":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(customerTable.email, input.cursorRecord.sortValue as string),
+            and(
+              eq(customerTable.email, input.cursorRecord.sortValue as string),
+              gt(customerTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(customerTable.email, input.cursorRecord.sortValue as string),
+            and(
+              eq(customerTable.email, input.cursorRecord.sortValue as string),
+              lt(customerTable.id, input.cursorRecord.id)
+            )
+          );
+    default:
+      return undefined;
+  }
+}
 function toCustomerRecord(
   record: typeof customerTable.$inferSelect
 ): CustomerRecord {

@@ -1,15 +1,5 @@
-import {
-  assertTodoWorkflowCreateState,
-  assertTodoWorkflowTransition,
-  createTodoInputSchema,
-  listTodosInputSchema,
-  updateTodoInputSchema,
-  type CreateTodoInput,
-  type UpdateTodoInput
-} from "@auditrail/domain/generated/todo";
-
+import { createTodoInputSchema, listTodosInputSchema, updateTodoInputSchema, assertTodoWorkflowCreateState, assertTodoWorkflowTransition, type CreateTodoInput, type ListTodosInput, type UpdateTodoInput } from "@auditrail/domain/generated/todo";
 import type { TodoRepo } from "./repo.js";
-
 export function createTodoService(repo: TodoRepo) {
   return {
     async archive(input: { id: string; organizationId: string }) {
@@ -17,9 +7,7 @@ export function createTodoService(repo: TodoRepo) {
     },
     async create(input: { data: CreateTodoInput; organizationId: string }) {
       const data = createTodoInputSchema.parse(input.data);
-
       assertTodoWorkflowCreateState(data.status);
-
       return repo.create({
         data,
         organizationId: input.organizationId
@@ -28,31 +16,16 @@ export function createTodoService(repo: TodoRepo) {
     async get(input: { id: string; organizationId: string }) {
       return repo.findById(input);
     },
-    async list(input: {
-      archived?: "exclude" | "include" | "only";
-      organizationId: string;
-      query?: string;
-      limit?: number;
-      cursor?: string;
-    }) {
+    async list(input: { organizationId: string; filters: ListTodosInput }) {
       return repo.list({
-        filters: listTodosInputSchema.parse({
-          archived: input.archived,
-          cursor: input.cursor,
-          limit: input.limit,
-          query: input.query
-        }),
+        filters: listTodosInputSchema.parse(input.filters),
         organizationId: input.organizationId
       });
     },
     async unarchive(input: { id: string; organizationId: string }) {
       return repo.unarchive(input);
     },
-    async update(input: {
-      data: UpdateTodoInput;
-      id: string;
-      organizationId: string;
-    }) {
+    async update(input: { data: UpdateTodoInput; id: string; organizationId: string }) {
       const data = updateTodoInputSchema.parse(input.data);
       const current = await repo.findById({
         id: input.id,
@@ -71,7 +44,6 @@ export function createTodoService(repo: TodoRepo) {
           to: nextWorkflowState
         });
       }
-
       return repo.update({
         data,
         id: input.id,

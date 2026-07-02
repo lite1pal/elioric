@@ -15,6 +15,7 @@ export function TaskTable(input: {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TaskRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }) {
   const showActions = Boolean(input.organizationId && input.resourceBasePath);
@@ -74,9 +75,13 @@ function renderRelationAwareValue(
 }
 
 function buildResourceHref(
-  input: Pick<TaskTableParameters, "organizationId" | "projectId" | "resourceBasePath">,
+  input: Pick<TaskTableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,
   id: string
 ) {
+  if (input.resourceQuery) {
+    return `${input.resourceBasePath}/${id}?${input.resourceQuery}`;
+  }
+
   const query = new URLSearchParams({
     organizationId: input.organizationId ?? ""
   });
@@ -89,9 +94,13 @@ function buildResourceHref(
 }
 
 function buildEditHref(
-  input: Pick<TaskTableParameters, "organizationId" | "projectId" | "resourceBasePath">,
+  input: Pick<TaskTableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,
   id: string
 ) {
+  if (input.resourceQuery) {
+    return `${input.resourceBasePath}/${id}/edit?${input.resourceQuery}`;
+  }
+
   const query = new URLSearchParams({
     organizationId: input.organizationId ?? ""
   });
@@ -108,5 +117,6 @@ interface TaskTableParameters {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TaskRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }

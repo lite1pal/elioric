@@ -1,6 +1,6 @@
-import type { TaskRecord } from "@auditrail/domain/generated/task";
+import type { TaskRecord, ListTasksInput, ListTasksResponse } from "@auditrail/domain/generated/task";
 import { taskTable } from "@auditrail/db/schema";
-import { and, desc, eq, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import type { AppDatabase } from "../../../plugins/database.js";
 import type { TaskRepo } from "./repo.js";
 export function createPostgresTaskRepo(db: AppDatabase): TaskRepo {
@@ -28,8 +28,10 @@ export function createPostgresTaskRepo(db: AppDatabase): TaskRepo {
     async list(input) {
       const limit = Math.min(input.filters.limit ?? 50, 100);
       const pattern = input.filters.query ? `%${input.filters.query}%` : undefined;
+      const sortBy = input.filters.sortBy ?? "createdAt";
+      const sortDirection = input.filters.sortDirection ?? "desc";
       const [cursorRecord] = input.filters.cursor ? await db.select({
-        createdAt: taskTable.createdAt,
+        sortValue: resolveGeneratedListSortColumn(sortBy),
         id: taskTable.id
       }).from(taskTable).where(
         and(
@@ -37,6 +39,9 @@ export function createPostgresTaskRepo(db: AppDatabase): TaskRepo {
           eq(taskTable.organizationId, input.organizationId)
         )
       ).limit(1) : [];
+      if (input.filters.cursor && !cursorRecord) {
+        throw new Error("invalid_cursor");
+      }
       const records = await db.select().from(taskTable).where(
         and(
           eq(taskTable.organizationId, input.organizationId),
@@ -46,17 +51,23 @@ export function createPostgresTaskRepo(db: AppDatabase): TaskRepo {
             )
             : undefined,
           cursorRecord
-            ? or(
-                lt(taskTable.createdAt, cursorRecord.createdAt),
-                and(
-                  eq(taskTable.createdAt, cursorRecord.createdAt),
-                  lt(taskTable.id, cursorRecord.id)
-                )
-              )
+            ? buildGeneratedListCursorClause({
+                cursorRecord,
+                sortBy,
+                sortDirection
+              })
             : undefined
         )
-      ).orderBy(desc(taskTable.createdAt), desc(taskTable.id)).limit(limit);
-      return records.map(toTaskRecord);
+      ).orderBy(...resolveGeneratedListOrder(sortBy, sortDirection)).limit(limit + 1);
+      const hasMore = records.length > limit;
+      const pageRecords = hasMore ? records.slice(0, limit) : records;
+      return {
+        items: pageRecords.map(toTaskRecord),
+        pageInfo: {
+          hasMore,
+          nextCursor: hasMore ? pageRecords.at(-1)?.id ?? null : null
+        }
+      };
     },
     async update(input) {
       const [record] = await db.update(taskTable).set({
@@ -75,6 +86,72 @@ export function createPostgresTaskRepo(db: AppDatabase): TaskRepo {
       return record ? toTaskRecord(record) : undefined;
     }
   };
+}
+function resolveGeneratedListSortColumn(
+  sortBy: ListTasksInput["sortBy"] extends infer T ? NonNullable<T> : never
+) {
+  switch (sortBy) {
+    case "createdAt":
+      return taskTable.createdAt;
+    case "updatedAt":
+      return taskTable.updatedAt;
+    default:
+      return taskTable.createdAt;
+  }
+}
+function resolveGeneratedListOrder(
+  sortBy: ListTasksInput["sortBy"] extends infer T ? NonNullable<T> : never,
+  sortDirection: "asc" | "desc"
+) {
+  const sortColumn = resolveGeneratedListSortColumn(sortBy);
+  return sortDirection === "asc"
+    ? [asc(sortColumn), asc(taskTable.id)] as const
+    : [desc(sortColumn), desc(taskTable.id)] as const;
+}
+function buildGeneratedListCursorClause(input: {
+  cursorRecord: {
+    id: string;
+    sortValue: unknown;
+  };
+  sortBy: ListTasksInput["sortBy"] extends infer T ? NonNullable<T> : never;
+  sortDirection: "asc" | "desc";
+}) {
+  switch (input.sortBy) {
+    case "createdAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(taskTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(taskTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(taskTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(taskTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(taskTable.createdAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(taskTable.id, input.cursorRecord.id)
+            )
+          );
+    case "updatedAt":
+      return input.sortDirection === "asc"
+        ? or(
+            gt(taskTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(taskTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              gt(taskTable.id, input.cursorRecord.id)
+            )
+          )
+        : or(
+            lt(taskTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+            and(
+              eq(taskTable.updatedAt, new Date(String(input.cursorRecord.sortValue))),
+              lt(taskTable.id, input.cursorRecord.id)
+            )
+          );
+    default:
+      return undefined;
+  }
 }
 function toTaskRecord(
   record: typeof taskTable.$inferSelect

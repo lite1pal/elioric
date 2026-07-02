@@ -10,6 +10,9 @@ The immediate Elioric framework roadmap is now:
 1. T-121: add generated filter, sort, and pagination primitives so generated
    CRM and PM products can preserve real query state instead of falling back
    to one fixed list view
+   Status: done. Generated resources now emit reusable cursor, limit, search,
+   sort, and bounded filter contracts, and generated product pages preserve
+   that list state across create, detail, edit, archive, and restore flows.
 1. T-125: prove a CLI-generated CRM product end to end through the supported
    init -> plan -> install -> backfill -> runtime path
 1. T-126: harden reinstall and upgrade semantics for multi-resource products
@@ -35,8 +38,8 @@ meaningful checkpoint after the committed todo end-to-end proof is to deepen tha
 believable PM slice instead of a single-resource workspace proof.
 The CRM template now provides the first bounded multi-resource business-product
 family, and archive, record-policy, and workflow generation are now in place,
-so the next leverage moves are query depth plus a real CRM proof rather than
-more template plumbing.
+so the next leverage move is the real CRM proof rather than more template
+plumbing.
 
 The hosted AuditTrail MVP remains the release gate, but the framework work now
 has a cleaner sequence for deeper multiple-product proof, and the generated

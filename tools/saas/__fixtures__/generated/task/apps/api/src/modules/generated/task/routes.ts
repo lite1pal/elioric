@@ -4,6 +4,13 @@ import type { createTaskService } from "./service.js";
 const organizationParamsSchema = z.object({
   organizationId: z.string().uuid()
 });
+const listQuerySchema = z.object({
+  cursor: z.string().min(1).optional(),
+  limit: z.coerce.number().int().positive().max(100).optional(),
+  query: z.string().trim().min(1).optional(),
+  sortBy: z.enum(["createdAt", "updatedAt"]).default("createdAt"),
+  sortDirection: z.enum(["asc", "desc"]).default("desc")
+});
 const resourceIdParamsSchema = z.object({
   id: z.string().uuid(),
   organizationId: z.string().uuid()
@@ -45,10 +52,11 @@ export async function registerTaskRoutes(
   app.get("/v1/organizations/:organizationId/tasks", async (request, reply) => {
     const user = request.sessionUser;
     const params = organizationParamsSchema.safeParse(request.params);
+    const query = listQuerySchema.safeParse(request.query);
     if (!user) {
       return reply.code(401).send({ error: "missing_session" });
     }
-    if (!params.success) {
+    if (!params.success || !query.success) {
       return reply.code(400).send({ error: "invalid_request" });
     }
     try {
@@ -57,14 +65,10 @@ export async function registerTaskRoutes(
         organizationId: params.data.organizationId,
         userId: user.id
       });
-      return {
-        items: await options.service.list({
-          cursor: undefined,
-          limit: undefined,
-          organizationId: params.data.organizationId,
-          query: undefined
-        })
-      };
+      return options.service.list({
+        filters: query.data,
+        organizationId: params.data.organizationId
+      });
     } catch (error) {
       return mapGeneratedResourceAccessError(reply, error);
     }
@@ -169,6 +173,9 @@ function mapGeneratedResourceAccessError(reply: FastifyReply, error: unknown) {
     return reply.code(400).send({
       error: error.message.slice("invalid_workflow_transition:".length)
     });
+  }
+  if (error instanceof Error && error.message === "invalid_cursor") {
+    return reply.code(400).send({ error: "invalid_cursor" });
   }
   throw error;
 }

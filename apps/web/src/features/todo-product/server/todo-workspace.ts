@@ -24,18 +24,20 @@ export async function loadTodoWorkspacePage(
       requiredProductId: "todo"
     }
   );
-  const items = workspace.activeOrganizationId
-    ? (await createResourceClient(createServerApiClient()).list(
+  const listQuery = readListQuery(searchParams);
+  const listResponse = workspace.activeOrganizationId
+    ? await createResourceClient(createServerApiClient()).list(
         workspace.activeOrganizationId,
-        { archived: readArchivedFilter(searchParams) }
-      )).items
-    : [];
+        listQuery
+      )
+    : { items: [], pageInfo: { hasMore: false, nextCursor: null } };
   const relationPresentations = {};
   return {
-    archivedFilter: readArchivedFilter(searchParams),
     draftValues: readDraftValues(searchParams),
     feedback: readFeedback(searchParams),
-    items,
+    items: listResponse.items,
+    listQuery,
+    pageInfo: listResponse.pageInfo,
     relationPresentations,
     workspace
   };
@@ -59,6 +61,7 @@ export async function loadTodoWorkspaceDetailPage(
       requiredProductId: "todo"
     }
   );
+  const listQuery = readListQuery(input.searchParams);
   const item = workspace.activeOrganizationId
     ? await createResourceClient(createServerApiClient()).get(
         workspace.activeOrganizationId,
@@ -70,7 +73,7 @@ export async function loadTodoWorkspaceDetailPage(
     draftValues: readDraftValues(input.searchParams),
     feedback: readFeedback(input.searchParams),
     item,
-    archivedFilter: readArchivedFilter(input.searchParams),
+    listQuery,
     relationPresentations,
     workspace
   };
@@ -79,7 +82,7 @@ export async function createTodoWorkspaceAction(formData: FormData) {
   "use server";
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
-  const archived = readArchivedFilterFromFormData(formData);
+  const listQuery = readListQueryFromFormData(formData);
   try {
     const payload = createTodoInputSchema.parse({
       title: String(formData.get("title") ?? ""),
@@ -91,12 +94,12 @@ export async function createTodoWorkspaceAction(formData: FormData) {
       organizationId,
       payload
     );
-    const nextPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, archived);
+    const nextPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, listQuery);
     revalidatePath(nextPath);
     redirect(nextPath as never);
   } catch (error) {
     redirect(
-      buildFailurePath("/todo/todos", organizationId, projectId, archived, {
+      buildFailurePath("/todo/todos", organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
         feedback: getFeedbackMessage(error, "Unable to create this record right now.")
       }) as never
@@ -108,7 +111,7 @@ export async function updateTodoWorkspaceAction(formData: FormData) {
   const todoId = String(formData.get("todoId") ?? "");
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
-  const archived = readArchivedFilterFromFormData(formData);
+  const listQuery = readListQueryFromFormData(formData);
   try {
     const payload = updateTodoInputSchema.parse({
       title: String(formData.get("title") ?? ""),
@@ -121,14 +124,14 @@ export async function updateTodoWorkspaceAction(formData: FormData) {
       todoId,
       payload
     );
-    const nextPath = buildResourcePath("/todo/todos", todoId, organizationId, projectId, archived);
-    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, archived);
+    const nextPath = buildResourcePath("/todo/todos", todoId, organizationId, projectId, listQuery, { includeCursor: true });
+    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, listQuery);
     revalidatePath(nextPath);
     revalidatePath(listPath);
     redirect(nextPath as never);
   } catch (error) {
     redirect(
-      buildFailurePath(buildResourceEditPath("/todo/todos", todoId), organizationId, projectId, archived, {
+      buildFailurePath(buildResourceEditPath("/todo/todos", todoId), organizationId, projectId, listQuery, {
         draftValues: buildDraftValues(formData),
         feedback: getFeedbackMessage(error, "Unable to save changes right now.")
       }) as never
@@ -142,7 +145,7 @@ export async function archiveTodoWorkspaceAction(formData: FormData) {
   const todoId = String(formData.get("todoId") ?? "");
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
-  const archived = readArchivedFilterFromFormData(formData);
+  const listQuery = readListQueryFromFormData(formData);
 
   try {
     await createResourceClient(createServerApiClient()).archive(
@@ -150,20 +153,20 @@ export async function archiveTodoWorkspaceAction(formData: FormData) {
       todoId
     );
 
-    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, archived);
+    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, listQuery);
     const detailPath = buildResourcePath(
       "/todo/todos",
       todoId,
       organizationId,
       projectId,
-      archived === "only" ? "only" : "exclude"
+      { ...listQuery, archived: listQuery.archived === "only" ? "only" : "exclude" }
     );
     revalidatePath(listPath);
     revalidatePath(detailPath);
     redirect(listPath as never);
   } catch (error) {
     redirect(
-      buildFailurePath(buildResourcePath("/todo/todos", todoId, organizationId, projectId, archived), organizationId, projectId, archived, {
+      buildFailurePath(buildResourcePath("/todo/todos", todoId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
         feedback: getFeedbackMessage(error, "Unable to archive this record right now.")
       }) as never
     );
@@ -176,7 +179,7 @@ export async function unarchiveTodoWorkspaceAction(formData: FormData) {
   const todoId = String(formData.get("todoId") ?? "");
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
-  const archived = readArchivedFilterFromFormData(formData);
+  const listQuery = readListQueryFromFormData(formData);
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(
@@ -184,12 +187,12 @@ export async function unarchiveTodoWorkspaceAction(formData: FormData) {
       todoId
     );
 
-    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, archived === "only" ? "exclude" : archived);
+    const listPath = "/todo/todos" + buildWorkspaceSuffix(organizationId, projectId, { ...listQuery, archived: listQuery.archived === "only" ? "exclude" : listQuery.archived });
     revalidatePath(listPath);
-    redirect(buildResourcePath("/todo/todos", todoId, organizationId, projectId, "exclude") as never);
+    redirect(buildResourcePath("/todo/todos", todoId, organizationId, projectId, { ...listQuery, archived: "exclude" }) as never);
   } catch (error) {
     redirect(
-      buildFailurePath(buildResourcePath("/todo/todos", todoId, organizationId, projectId, archived), organizationId, projectId, archived, {
+      buildFailurePath(buildResourcePath("/todo/todos", todoId, organizationId, projectId, listQuery), organizationId, projectId, listQuery, {
         feedback: getFeedbackMessage(error, "Unable to restore this record right now.")
       }) as never
     );
@@ -230,29 +233,56 @@ function compactRelationPresentations(
     ])
   ) as TodoRelationPresentations;
 }
+type TodoListQuery = {
+  archived: "exclude" | "include" | "only";
+  cursor?: string;
+  limit?: number;
+  query?: string;
+  sortBy: "createdAt" | "updatedAt" | "title";
+  sortDirection: "asc" | "desc";
+  status?: "todo" | "done";
+};
 function buildWorkspaceSuffix(
   organizationId: string,
-  projectId?: string,
-  archived?: "exclude" | "include" | "only"
+  projectId: string | undefined,
+  query: TodoListQuery,
+  options?: {
+    includeCursor?: boolean;
+  }
 ) {
-  const query = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams({ organizationId });
   if (projectId) {
-    query.set("projectId", projectId);
+    search.set("projectId", projectId);
   }
-
-  if (archived) {
-    query.set("archived", archived);
+  for (const [key, value] of Object.entries({
+    archived: query.archived,
+    query: query.query,
+    limit: query.limit,
+    sortBy: query.sortBy !== "createdAt" ? query.sortBy : undefined,
+    sortDirection: query.sortDirection !== "desc" ? query.sortDirection : undefined,
+    status: query.status,
+  })) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    search.set(key, String(value));
   }
-  return `?${query.toString()}`;
+  if (options?.includeCursor && query.cursor) {
+    search.set("cursor", query.cursor);
+  }
+  return `?${search.toString()}`;
 }
 function buildResourcePath(
   basePath: string,
   id: string,
   organizationId: string,
   projectId?: string,
-  archived?: "exclude" | "include" | "only"
+  query?: TodoListQuery,
+  options?: {
+    includeCursor?: boolean;
+  }
 ) {
-  return `${basePath}/${id}${buildWorkspaceSuffix(organizationId, projectId, archived)}`;
+  return `${basePath}/${id}${buildWorkspaceSuffix(organizationId, projectId, query ?? readDefaultListQuery(), options)}`;
 }
 function buildResourceEditPath(basePath: string, id: string) {
   return `${basePath}/${id}/edit`;
@@ -261,48 +291,96 @@ function buildFailurePath(
   basePath: string,
   organizationId: string,
   projectId: string | undefined,
-  archived: "exclude" | "include" | "only" | undefined,
+  query: TodoListQuery,
   input: {
     draftValues?: Record<string, string | undefined>;
     feedback: string;
   }
 ) {
-  const query = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams({ organizationId });
   if (projectId) {
-    query.set("projectId", projectId);
+    search.set("projectId", projectId);
   }
-
-  if (archived) {
-    query.set("archived", archived);
+  for (const [key, value] of Object.entries({
+    archived: query.archived,
+    query: query.query,
+    limit: query.limit,
+    sortBy: query.sortBy !== "createdAt" ? query.sortBy : undefined,
+    sortDirection: query.sortDirection !== "desc" ? query.sortDirection : undefined,
+    status: query.status,
+  })) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    search.set(key, String(value));
   }
-  query.set("feedback", input.feedback);
+  search.set("feedback", input.feedback);
   for (const [key, value] of Object.entries(input.draftValues ?? {})) {
     if (value !== undefined && value.length > 0) {
-      query.set(`draft_${key}`, value);
+      search.set(`draft_${key}`, value);
     }
   }
-  return `${basePath}?${query.toString()}`;
+  return `${basePath}?${search.toString()}`;
 }
 function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+function readAllowedValue<T extends string>(value: string | undefined, allowed: readonly T[]) {
+  return value && allowed.includes(value as T) ? (value as T) : undefined;
+}
+function readPositiveInteger(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 function readFeedback(searchParams: Record<string, string | string[] | undefined>) {
   const feedback = getSearchValue(searchParams.feedback);
   return feedback ? feedback : undefined;
 }
+function readDefaultListQuery(): TodoListQuery {
+  return {
+    archived: "exclude",
+    cursor: undefined,
+    limit: undefined,
+    query: undefined,
+    sortBy: "createdAt",
+    sortDirection: "desc",
+    status: undefined,
+  };
+}
+function readListQuery(searchParams: Record<string, string | string[] | undefined>): TodoListQuery {
+  return {
+    archived: readArchivedFilter(searchParams),
+    cursor: getSearchValue(searchParams.cursor) ?? undefined,
+    limit: readPositiveInteger(getSearchValue(searchParams.limit)),
+    query: getSearchValue(searchParams.query) ?? undefined,
+    sortBy: readAllowedValue(getSearchValue(searchParams.sortBy), ["createdAt", "updatedAt", "title"]) ?? "createdAt",
+    sortDirection: readAllowedValue(getSearchValue(searchParams.sortDirection), ["asc", "desc"]) ?? "desc",
+    status: readAllowedValue(getSearchValue(searchParams.status), ["todo", "done"]) ?? undefined,
+  };
+}
+function readListQueryFromFormData(formData: FormData): TodoListQuery {
+  return {
+    archived: readArchivedFilterFromFormData(formData),
+    cursor: undefined,
+    limit: readPositiveInteger(coerceString(formData.get("list_limit"))),
+    query: coerceString(formData.get("list_query")),
+    sortBy: readAllowedValue(coerceString(formData.get("list_sortBy")), ["createdAt", "updatedAt", "title"]) ?? "createdAt",
+    sortDirection: readAllowedValue(coerceString(formData.get("list_sortDirection")), ["asc", "desc"]) ?? "desc",
+    status: readAllowedValue(coerceString(formData.get("list_status")), ["todo", "done"]) ?? undefined,
+  };
+}
 
-function readArchivedFilter(
-  searchParams: Record<string, string | string[] | undefined>
-): "exclude" | "include" | "only" {
+function readArchivedFilter(searchParams: Record<string, string | string[] | undefined>): "exclude" | "include" | "only" {
   const archived = getSearchValue(searchParams.archived);
 
   return archived === "include" || archived === "only" ? archived : "exclude";
 }
 
-function readArchivedFilterFromFormData(
-  formData: FormData
-): "exclude" | "include" | "only" {
-  const value = coerceString(formData.get("archived"));
+function readArchivedFilterFromFormData(formData: FormData): "exclude" | "include" | "only" {
+  const value = coerceString(formData.get("list_archived"));
 
   return value === "include" || value === "only" ? value : "exclude";
 }

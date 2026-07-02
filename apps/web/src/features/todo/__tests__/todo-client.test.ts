@@ -6,7 +6,7 @@ import { createResourceClient } from "../api/todo-client.js";
 describe("createResourceClient", () => {
   it("loads todos through the API client", async () => {
     const requests: unknown[] = [];
-    const client = createResourceClient(createRecordingApiClient(requests, { items: [] }));
+    const client = createResourceClient(createRecordingApiClient(requests, { items: [], pageInfo: { hasMore: false, nextCursor: null } }));
 
     await client.list("00000000-0000-0000-0000-000000000001");
 

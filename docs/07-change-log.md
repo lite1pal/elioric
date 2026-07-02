@@ -2,6 +2,15 @@
 
 ## 2026-07-02
 
+- Completed T-121 by adding generated filter, sort, and pagination
+  primitives for product resources. Generated resource domain contracts now
+  emit reusable list-query schemas with cursor, limit, search, sort, and
+  bounded filter fields; generated API repos and routes now return
+  `{ items, pageInfo }`; generated web clients now send the same query
+  contract; and the committed todo product now preserves list state through
+  create, detail, edit, archive, and restore flows while the Postgres-backed
+  integration proof exercises the updated list response shape.
+
 - Completed T-120 by adding generated workflow and state-transition support.
   Framework resource specs can now declare one enum-backed workflow field with
   an initial state plus explicit transitions, generated domain packages now

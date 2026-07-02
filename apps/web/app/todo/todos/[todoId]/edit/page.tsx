@@ -62,7 +62,12 @@ export default async function ResourceEditPage({
           <input name="todoId" type="hidden" value={data.item?.id ?? resolvedParams.todoId} />
           <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
           <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-          <input name="archived" type="hidden" value={data.archivedFilter} />
+          <input name="list_archived" type="hidden" value={data.listQuery.archived} />
+          <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
+          <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
+          <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
+          <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
+          <input name="list_status" type="hidden" value={data.listQuery.status ?? ""} />
         </TodoForm>
       </div>
     </AppShell>

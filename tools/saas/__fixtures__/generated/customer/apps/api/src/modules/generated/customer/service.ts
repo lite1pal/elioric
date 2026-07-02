@@ -1,4 +1,4 @@
-import { createCustomerInputSchema, listCustomersInputSchema, updateCustomerInputSchema, type CreateCustomerInput, type UpdateCustomerInput } from "@auditrail/domain/generated/customer";
+import { createCustomerInputSchema, listCustomersInputSchema, updateCustomerInputSchema, type CreateCustomerInput, type ListCustomersInput, type UpdateCustomerInput } from "@auditrail/domain/generated/customer";
 import type { CustomerRepo } from "./repo.js";
 export function createCustomerService(repo: CustomerRepo) {
   return {
@@ -12,13 +12,9 @@ export function createCustomerService(repo: CustomerRepo) {
     async get(input: { id: string; organizationId: string }) {
       return repo.findById(input);
     },
-    async list(input: { organizationId: string; query?: string; limit?: number; cursor?: string }) {
+    async list(input: { organizationId: string; filters: ListCustomersInput }) {
       return repo.list({
-        filters: listCustomersInputSchema.parse({
-          cursor: input.cursor,
-          limit: input.limit,
-          query: input.query
-        }),
+        filters: listCustomersInputSchema.parse(input.filters),
         organizationId: input.organizationId
       });
     },

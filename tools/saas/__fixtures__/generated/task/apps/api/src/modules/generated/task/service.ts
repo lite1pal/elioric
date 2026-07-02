@@ -1,4 +1,4 @@
-import { createTaskInputSchema, listTasksInputSchema, updateTaskInputSchema, type CreateTaskInput, type UpdateTaskInput } from "@auditrail/domain/generated/task";
+import { createTaskInputSchema, listTasksInputSchema, updateTaskInputSchema, type CreateTaskInput, type ListTasksInput, type UpdateTaskInput } from "@auditrail/domain/generated/task";
 import type { TaskRepo } from "./repo.js";
 export function createTaskService(repo: TaskRepo) {
   return {
@@ -12,13 +12,9 @@ export function createTaskService(repo: TaskRepo) {
     async get(input: { id: string; organizationId: string }) {
       return repo.findById(input);
     },
-    async list(input: { organizationId: string; query?: string; limit?: number; cursor?: string }) {
+    async list(input: { organizationId: string; filters: ListTasksInput }) {
       return repo.list({
-        filters: listTasksInputSchema.parse({
-          cursor: input.cursor,
-          limit: input.limit,
-          query: input.query
-        }),
+        filters: listTasksInputSchema.parse(input.filters),
         organizationId: input.organizationId
       });
     },

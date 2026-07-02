@@ -1077,12 +1077,19 @@ Current contract:
   `owner`, `admin`, `member`, or `viewer` of the organization
 - writes return `403 forbidden` unless the session user is an
   `owner`, `admin`, or `member` of the organization
-- `GET /customers` returns `{ "items": CustomerRecord[] }`
-- `GET /todos` returns `{ "items": TodoRecord[] }`
+- generated list routes now support one bounded query contract:
+  `archived`, `cursor`, `limit`, `query`, `sortBy`, `sortDirection`, plus any
+  generator-declared filter fields such as todo `status`
+- `GET /customers` returns
+  `{ "items": CustomerRecord[], "pageInfo": { "hasMore": boolean, "nextCursor": string | null } }`
+- `GET /todos` returns
+  `{ "items": TodoRecord[], "pageInfo": { "hasMore": boolean, "nextCursor": string | null } }`
 - `POST`, `GET /:id`, and `PATCH /:id` return one `CustomerRecord`
 - `DELETE /todos/:id` returns `204` on success
 - the todo product-owned web proof route `/todo/todos` loads that same
-  installed API contract through generated server clients and server actions
+  installed API contract through generated server clients and server actions,
+  and it preserves query-state parameters across create, detail, edit,
+  archive, and restore flows
 - generated product pages may resolve bounded relation labels and links on the
   web side, but the API contract still returns scalar relation IDs
 - `GET /:id`, `PATCH /:id`, and `DELETE /:id` return `404 not_found` when the

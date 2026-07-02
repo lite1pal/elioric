@@ -76,6 +76,12 @@ workflow normalization and enum-field validation, generated todo service plus
 route integration tests must prove rejected transitions return a `400`, and
 the generated todo product flow must prove that rejected transitions surface a
 user-facing feedback message without mutating the record.
+Generated list-query primitives now sit in the same lane too: fixture smoke
+checks must prove the reusable cursor, sort, and filter contract stays
+deterministic; generated route and client tests must prove list responses
+include `pageInfo`; and the installed todo proof must preserve list query
+state through generated product-owned flows instead of resetting to a fixed
+default view.
 Archive-enabled generated resources now also need migration coverage in the
 real test database, because schema-only generator changes are not complete
 until the committed proof still passes against Postgres after

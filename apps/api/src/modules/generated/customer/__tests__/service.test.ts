@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-
 import { createCustomerService } from "../service.js";
-
 describe("createCustomerService", () => {
   it("validates create input before writing customer records", async () => {
     const service = createCustomerService({
@@ -23,13 +21,12 @@ describe("createCustomerService", () => {
         return undefined;
       },
       async list() {
-        return [];
+        return { items: [], pageInfo: { hasMore: false, nextCursor: null } };
       },
       async update() {
         return undefined;
       }
     });
-
     await expect(
       service.create({
         data: {

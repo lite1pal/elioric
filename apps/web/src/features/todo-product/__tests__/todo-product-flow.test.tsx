@@ -83,7 +83,11 @@ vi.mock("@/src/features/todo/api/todo-client", () => ({
             : records.filter((record) => !record.archivedAt);
 
       return {
-        items
+        items,
+        pageInfo: {
+          hasMore: false,
+          nextCursor: null
+        }
       };
     },
     async archive() {

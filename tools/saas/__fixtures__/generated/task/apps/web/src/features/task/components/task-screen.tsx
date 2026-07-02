@@ -18,6 +18,7 @@ export function TaskScreen(input: {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TaskRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }) {
   if (input.items.length === 0) {
@@ -30,6 +31,7 @@ export function TaskScreen(input: {
       organizationId={input.organizationId}
       projectId={input.projectId}
       relationPresentations={input.relationPresentations}
+      resourceQuery={input.resourceQuery}
       resourceBasePath={input.resourceBasePath}
     />
   );

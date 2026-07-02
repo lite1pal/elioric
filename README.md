@@ -211,12 +211,16 @@ The current product-generation slice is intentionally narrow:
 - generated resources can now declare bounded workflow transitions on one enum
   field; the todo proof enforces `todo -> done` while the CRM `deal` template
   now emits a generated stage progression contract
+- generated resources now emit a reusable list-query contract with cursor,
+  limit, search query, sort direction, and bounded filter fields; generated
+  product pages preserve that query state through create, detail, edit,
+  archive, and restore flows without per-product glue code
 - the committed proof now covers generated product install, test migration,
   generated web page load, generated server-action
   create/update/archive/unarchive, generated validation feedback with
   preserved draft form values, generated detail/edit routes, explicit
-  archived-filter list views, and real API create/list/archive/unarchive
-  execution for the installed todo slice
+  archived-filter list views, generated next-page navigation, and real API
+  create/list/archive/unarchive execution for the installed todo slice
 
 Prove the committed generated-resource slice against Postgres:
 

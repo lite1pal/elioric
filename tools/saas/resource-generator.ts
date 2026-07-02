@@ -462,20 +462,27 @@ function renderDomainIndex(context: ReturnType<typeof createTemplateContext>) {
     "});",
     ...workflowLines,
     "",
+    `export const ${context.resource.resource}PageInfoSchema = z.object({`,
+    "  hasMore: z.boolean(),",
+    "  nextCursor: z.string().nullable()",
+    "});",
+    "",
     `export const list${context.pluralPascalName}InputSchema = z.object({`,
-    isArchiveEnabled(context)
-      ? '  archived: z.enum(["exclude", "include", "only"]).optional(),'
-      : "",
-    '  cursor: z.string().uuid().optional(),',
-    '  limit: z.number().int().positive().max(100).optional(),',
-    "  query: z.string().trim().min(1).optional()",
+    ...renderGeneratedListInputSchemaLines(context),
+    "});",
+    "",
+    `export const list${context.pluralPascalName}ResponseSchema = z.object({`,
+    `  items: z.array(${context.resource.resource}RecordSchema),`,
+    `  pageInfo: ${context.resource.resource}PageInfoSchema`,
     "});",
     "",
     `export type ${context.pascalName}Record = z.infer<typeof ${context.resource.resource}RecordSchema>;`,
     ...renderWorkflowDomainTypes(context),
+    `export type ${context.pascalName}PageInfo = z.infer<typeof ${context.resource.resource}PageInfoSchema>;`,
     `export type Create${context.pascalName}Input = z.infer<typeof create${context.pascalName}InputSchema>;`,
     `export type Update${context.pascalName}Input = z.infer<typeof update${context.pascalName}InputSchema>;`,
-    `export type List${context.pluralPascalName}Input = z.infer<typeof list${context.pluralPascalName}InputSchema>;`
+    `export type List${context.pluralPascalName}Input = z.infer<typeof list${context.pluralPascalName}InputSchema>;`,
+    `export type List${context.pluralPascalName}Response = z.infer<typeof list${context.pluralPascalName}ResponseSchema>;`
   ].join("\n");
 }
 
@@ -590,9 +597,9 @@ function renderWorkflowDomainContract(
     "    return;",
     "  }",
     "",
-    `  const allowedTransitions = ${context.resource.resource}Workflow.transitions[input.from] ?? [];`,
+    `  const allowedTransitions = ${context.resource.resource}Workflow.transitions[input.from] as readonly ${stateTypeName}[] | undefined;`,
     "",
-    "  if (!allowedTransitions.includes(input.to)) {",
+    "  if (!allowedTransitions?.includes(input.to)) {",
     `    throw new Error(\`invalid_workflow_transition:Cannot move ${workflow.field} from \${input.from} to \${input.to}.\`);`,
     "  }",
     "}"
@@ -611,7 +618,7 @@ function renderWorkflowDomainTypes(context: ReturnType<typeof createTemplateCont
 
 function renderApiRepo(context: ReturnType<typeof createTemplateContext>) {
   return [
-    `import type { Create${context.pascalName}Input, ${context.pascalName}Record, List${context.pluralPascalName}Input, Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
+    `import type { Create${context.pascalName}Input, ${context.pascalName}Record, List${context.pluralPascalName}Input, List${context.pluralPascalName}Response, Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
     "",
     `export interface ${context.pascalName}Repo {`,
     isArchiveEnabled(context)
@@ -622,7 +629,7 @@ function renderApiRepo(context: ReturnType<typeof createTemplateContext>) {
       ? `  delete(input: { id: string; organizationId: string }): Promise<boolean>;`
       : "",
     `  findById(input: { id: string; organizationId: string }): Promise<${context.pascalName}Record | undefined>;`,
-    `  list(input: { organizationId: string; filters: List${context.pluralPascalName}Input }): Promise<readonly ${context.pascalName}Record[]>;`,
+    `  list(input: { organizationId: string; filters: List${context.pluralPascalName}Input }): Promise<List${context.pluralPascalName}Response>;`,
     isArchiveEnabled(context)
       ? `  unarchive(input: { id: string; organizationId: string }): Promise<${context.pascalName}Record | undefined>;`
       : "",
@@ -665,7 +672,7 @@ function renderApiService(context: ReturnType<typeof createTemplateContext>) {
     : "";
 
   return [
-    `import { create${context.pascalName}InputSchema, list${context.pluralPascalName}InputSchema, update${context.pascalName}InputSchema${workflowImports}, type Create${context.pascalName}Input, type Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
+    `import { create${context.pascalName}InputSchema, list${context.pluralPascalName}InputSchema, update${context.pascalName}InputSchema${workflowImports}, type Create${context.pascalName}Input, type List${context.pluralPascalName}Input, type Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
     "",
     `import type { ${context.pascalName}Repo } from "./repo.js";`,
     "",
@@ -688,14 +695,9 @@ function renderApiService(context: ReturnType<typeof createTemplateContext>) {
     "    async get(input: { id: string; organizationId: string }) {",
     "      return repo.findById(input);",
     "    },",
-    `    async list(input: { ${isArchiveEnabled(context) ? 'archived?: "exclude" | "include" | "only"; ' : ""}organizationId: string; query?: string; limit?: number; cursor?: string }) {`,
+    `    async list(input: { organizationId: string; filters: List${context.pluralPascalName}Input }) {`,
     "      return repo.list({",
-    "        filters: list" + context.pluralPascalName + "InputSchema.parse({",
-    isArchiveEnabled(context) ? '          archived: input.archived,' : "",
-    "          cursor: input.cursor,",
-    "          limit: input.limit,",
-    "          query: input.query",
-    "        }),",
+    "        filters: list" + context.pluralPascalName + "InputSchema.parse(input.filters),",
     "        organizationId: input.organizationId",
     "      });",
     "    },",
@@ -737,14 +739,62 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
     `    ${field.name}: ${renderRecordValue(context, field)},`
   );
   const searchableFields = context.resource.fields.filter((field) => field.searchable);
+  const sortableFields = getListSortableFields(context);
+  const filterFields = getListFilterFields(context);
   const searchClauseLines = searchableFields.map((field) =>
     `      ilike(sql\`cast(\${${context.resource.resource}Table.${field.name}} as text)\`, pattern)`
   );
+  const sortColumnCases = sortableFields.map(
+    (field) =>
+      `    case ${JSON.stringify(field.name)}:\n      return ${context.resource.resource}Table.${field.name};`
+  );
+  const sortValueCases = sortableFields.map((field) => {
+    if (field.type === "datetime") {
+      return `    case ${JSON.stringify(field.name)}:\n      return record.${field.name}.toISOString();`;
+    }
+
+    return `    case ${JSON.stringify(field.name)}:\n      return String(record.${field.name});`;
+  });
+  const cursorClauseCases = sortableFields.map((field) => {
+    const tableField = `${context.resource.resource}Table.${field.name}`;
+    const parsedValue =
+      field.type === "datetime"
+        ? "new Date(String(input.cursorRecord.sortValue))"
+        : `input.cursorRecord.sortValue as ${field.type === "enum" ? `${context.pascalName}Record[${JSON.stringify(field.name)}]` : "string"}`;
+    const comparator =
+      field.type === "datetime"
+        ? parsedValue
+        : parsedValue;
+
+    return [
+      `    case ${JSON.stringify(field.name)}:`,
+      "      return input.sortDirection === \"asc\"",
+      "        ? or(",
+      `            gt(${tableField}, ${comparator}),`,
+      "            and(",
+      `              eq(${tableField}, ${comparator}),`,
+      `              gt(${context.resource.resource}Table.id, input.cursorRecord.id)`,
+      "            )",
+      "          )",
+      "        : or(",
+      `            lt(${tableField}, ${comparator}),`,
+      "            and(",
+      `              eq(${tableField}, ${comparator}),`,
+      `              lt(${context.resource.resource}Table.id, input.cursorRecord.id)`,
+      "            )",
+      "          );"
+    ].join("\n");
+  });
+  const filterClauseLines = filterFields.map((field) => {
+    const tableField = `${context.resource.resource}Table.${field.name}`;
+
+    return `          input.filters.${field.name} !== undefined ? eq(${tableField}, input.filters.${field.name}) : undefined,`;
+  });
 
   return [
-    `import type { ${context.pascalName}Record } from "@auditrail/domain/generated/${context.resourcePath}";`,
+    `import type { ${context.pascalName}Record, List${context.pluralPascalName}Input, List${context.pluralPascalName}Response } from "@auditrail/domain/generated/${context.resourcePath}";`,
     `import { ${context.resource.resource}Table } from "@auditrail/db/schema";`,
-    'import { and, desc, eq, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";',
+    'import { and, asc, desc, eq, gt, ilike, isNotNull, isNull, lt, or, sql } from "drizzle-orm";',
     "",
     `import type { AppDatabase } from "../../../plugins/database.js";`,
     `import type { ${context.pascalName}Repo } from "./repo.js";`,
@@ -804,11 +854,13 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
     "    async list(input) {",
     "      const limit = Math.min(input.filters.limit ?? 50, 100);",
     "      const pattern = input.filters.query ? `%${input.filters.query}%` : undefined;",
+    '      const sortBy = input.filters.sortBy ?? "createdAt";',
+    '      const sortDirection = input.filters.sortDirection ?? "desc";',
     isArchiveEnabled(context)
       ? '      const archived = input.filters.archived ?? "exclude";'
       : "",
     `      const [cursorRecord] = input.filters.cursor ? await db.select({`,
-    `        createdAt: ${context.resource.resource}Table.createdAt,`,
+    "        sortValue: resolveGeneratedListSortColumn(sortBy),",
     `        id: ${context.resource.resource}Table.id`,
     `      }).from(${context.resource.resource}Table).where(`,
     "        and(",
@@ -816,6 +868,11 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
     `          eq(${context.resource.resource}Table.organizationId, input.organizationId)`,
     "        )",
     "      ).limit(1) : [];",
+    "",
+    "      if (input.filters.cursor && !cursorRecord) {",
+    '        throw new Error("invalid_cursor");',
+    "      }",
+    "",
     `      const records = await db.select().from(${context.resource.resource}Table).where(`,
     "        and(",
     `          eq(${context.resource.resource}Table.organizationId, input.organizationId),`,
@@ -828,6 +885,7 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
           `              : isNull(${context.resource.resource}Table.${getArchiveFieldName(context)}),`
         ].join("\n")
       : "",
+    ...filterClauseLines,
     searchClauseLines.length > 0
       ? [
           "          pattern",
@@ -840,18 +898,25 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
         ].join("\n")
       : "          undefined,",
     "          cursorRecord",
-    "            ? or(",
-    `                lt(${context.resource.resource}Table.createdAt, cursorRecord.createdAt),`,
-    "                and(",
-    `                  eq(${context.resource.resource}Table.createdAt, cursorRecord.createdAt),`,
-    `                  lt(${context.resource.resource}Table.id, cursorRecord.id)`,
-    "                )",
-    "              )",
+    "            ? buildGeneratedListCursorClause({",
+    "                cursorRecord,",
+    "                sortBy,",
+    "                sortDirection",
+    "              })",
     "            : undefined",
     "        )",
-    `      ).orderBy(desc(${context.resource.resource}Table.createdAt), desc(${context.resource.resource}Table.id)).limit(limit);`,
+    "      ).orderBy(...resolveGeneratedListOrder(sortBy, sortDirection)).limit(limit + 1);",
     "",
-    `      return records.map(to${context.pascalName}Record);`,
+    "      const hasMore = records.length > limit;",
+    "      const pageRecords = hasMore ? records.slice(0, limit) : records;",
+    "",
+    "      return {",
+    `        items: pageRecords.map(to${context.pascalName}Record),`,
+    "        pageInfo: {",
+    "          hasMore,",
+    "          nextCursor: hasMore ? pageRecords.at(-1)?.id ?? null : null",
+    "        }",
+    "      };",
     "    },",
     isArchiveEnabled(context)
       ? [
@@ -887,6 +952,42 @@ function renderApiPostgresRepo(context: ReturnType<typeof createTemplateContext>
     "  };",
     "}",
     "",
+    "function resolveGeneratedListSortColumn(",
+    `  sortBy: List${context.pluralPascalName}Input["sortBy"] extends infer T ? NonNullable<T> : never`,
+    ") {",
+    "  switch (sortBy) {",
+    ...sortColumnCases,
+    "    default:",
+    `      return ${context.resource.resource}Table.createdAt;`,
+    "  }",
+    "}",
+    "",
+    "function resolveGeneratedListOrder(",
+    `  sortBy: List${context.pluralPascalName}Input["sortBy"] extends infer T ? NonNullable<T> : never,`,
+    '  sortDirection: "asc" | "desc"',
+    ") {",
+    "  const sortColumn = resolveGeneratedListSortColumn(sortBy);",
+    "",
+    '  return sortDirection === "asc"',
+    `    ? [asc(sortColumn), asc(${context.resource.resource}Table.id)] as const`,
+    `    : [desc(sortColumn), desc(${context.resource.resource}Table.id)] as const;`,
+    "}",
+    "",
+    "function buildGeneratedListCursorClause(input: {",
+    "  cursorRecord: {",
+    "    id: string;",
+    "    sortValue: unknown;",
+    "  };",
+    `  sortBy: List${context.pluralPascalName}Input["sortBy"] extends infer T ? NonNullable<T> : never;`,
+    '  sortDirection: "asc" | "desc";',
+    "}) {",
+    "  switch (input.sortBy) {",
+    ...cursorClauseCases,
+    "    default:",
+    "      return undefined;",
+    "  }",
+    "}",
+    "",
     `function to${context.pascalName}Record(`,
     `  record: typeof ${context.resource.resource}Table.$inferSelect`,
     `): ${context.pascalName}Record {`,
@@ -919,14 +1020,10 @@ function renderApiRoutes(context: ReturnType<typeof createTemplateContext>) {
     "  organizationId: z.string().uuid()",
     "});",
     "",
-    isArchiveEnabled(context)
-      ? [
-          "const listQuerySchema = z.object({",
-          '  archived: z.enum(["exclude", "include", "only"]).optional()',
-          "});",
-          ""
-        ].join("\n")
-      : "",
+    "const listQuerySchema = z.object({",
+    ...renderRouteListQuerySchemaLines(context),
+    "});",
+    "",
     "const resourceIdParamsSchema = z.object({",
     "  id: z.string().uuid(),",
     "  organizationId: z.string().uuid()",
@@ -973,15 +1070,13 @@ function renderApiRoutes(context: ReturnType<typeof createTemplateContext>) {
     `  app.get("${listPath}", async (request, reply) => {`,
     "    const user = request.sessionUser;",
     "    const params = organizationParamsSchema.safeParse(request.params);",
-    isArchiveEnabled(context)
-      ? "    const query = listQuerySchema.safeParse(request.query);"
-      : "",
+    "    const query = listQuerySchema.safeParse(request.query);",
     "",
     "    if (!user) {",
     '      return reply.code(401).send({ error: "missing_session" });',
     "    }",
     "",
-    `    if (!params.success${isArchiveEnabled(context) ? " || !query.success" : ""}) {`,
+    "    if (!params.success || !query.success) {",
     '      return reply.code(400).send({ error: "invalid_request" });',
     "    }",
     "",
@@ -992,15 +1087,10 @@ function renderApiRoutes(context: ReturnType<typeof createTemplateContext>) {
     "        userId: user.id",
     "      });",
     "",
-    "      return {",
-    "        items: await options.service.list({",
-    isArchiveEnabled(context) ? "          archived: query.data.archived," : "",
-    "          cursor: undefined,",
-    "          limit: undefined,",
-    "          organizationId: params.data.organizationId,",
-    "          query: undefined",
-    "        })",
-    "      };",
+    "      return options.service.list({",
+    "        filters: query.data,",
+    "        organizationId: params.data.organizationId",
+    "      });",
     "    } catch (error) {",
     "      return mapGeneratedResourceAccessError(reply, error);",
     "    }",
@@ -1273,6 +1363,10 @@ function renderApiRoutes(context: ReturnType<typeof createTemplateContext>) {
     "    });",
     "  }",
     "",
+    '  if (error instanceof Error && error.message === "invalid_cursor") {',
+    '    return reply.code(400).send({ error: "invalid_cursor" });',
+    "  }",
+    "",
     "  throw error;",
     "}"
   ]
@@ -1309,22 +1403,32 @@ function renderApiRoutesTest(context: ReturnType<typeof createTemplateContext>) 
     "    const app = buildTestApp({",
     "      async list(input) {",
     "        expect(input).toEqual({",
-    isArchiveEnabled(context) ? '          archived: "only",' : "",
-    "          cursor: undefined,",
-    "          limit: undefined,",
+    "          filters: {",
+    isArchiveEnabled(context) ? '            archived: "only",' : "",
+    "            cursor: undefined,",
+    "            limit: undefined,",
+    "            query: undefined,",
+    '            sortBy: "createdAt",',
+    '            sortDirection: "desc"',
+    "          },",
     '          organizationId: "11111111-1111-4111-8111-111111111111",',
-    "          query: undefined",
     "        });",
     "",
-    "        return [",
-    "          {",
-    '            createdAt: "2026-06-29T00:00:00.000Z",',
+    "        return {",
+    "          items: [",
+    "            {",
+    '              createdAt: "2026-06-29T00:00:00.000Z",',
     renderExpectedFieldObject(context.resource.fields),
-    '            id: "22222222-2222-4222-8222-222222222222",',
-    '            organizationId: "11111111-1111-4111-8111-111111111111",',
-    '            updatedAt: "2026-06-29T00:00:00.000Z"',
+    '              id: "22222222-2222-4222-8222-222222222222",',
+    '              organizationId: "11111111-1111-4111-8111-111111111111",',
+    '              updatedAt: "2026-06-29T00:00:00.000Z"',
+    "            }",
+    "          ],",
+    "          pageInfo: {",
+    "            hasMore: false,",
+    "            nextCursor: null",
     "          }",
-    "        ];",
+    "        };",
     "      }",
     "    });",
     "",
@@ -1342,7 +1446,11 @@ function renderApiRoutesTest(context: ReturnType<typeof createTemplateContext>) 
     '          organizationId: "11111111-1111-4111-8111-111111111111",',
     '          updatedAt: "2026-06-29T00:00:00.000Z"',
     "        }",
-    "      ]",
+    "      ],",
+    "      pageInfo: {",
+    "        hasMore: false,",
+    "        nextCursor: null",
+    "      }",
     "    });",
     "  });",
     "",
@@ -1532,7 +1640,7 @@ function renderApiRoutesTest(context: ReturnType<typeof createTemplateContext>) 
     '      throw new Error("not implemented");',
     "    },",
     "    async list() {",
-    "      return [];",
+    "      return { items: [], pageInfo: { hasMore: false, nextCursor: null } };",
     "    },",
     isArchiveEnabled(context)
       ? [
@@ -1666,7 +1774,11 @@ function renderApiRoutesIntegrationTest(
     "          organizationId: session.organizationId,",
     '          updatedAt: expect.any(String)',
     "        }",
-    "      ]",
+    "      ],",
+    "      pageInfo: {",
+    "        hasMore: false,",
+    "        nextCursor: null",
+    "      }",
     "    });",
     "",
     "    const getResponse = await app.inject({",
@@ -1725,7 +1837,11 @@ function renderApiRoutesIntegrationTest(
           "",
           "    expect(archivedListResponse.statusCode).toBe(200);",
           "    expect(archivedListResponse.json()).toEqual({",
-          "      items: []",
+          "      items: [],",
+          "      pageInfo: {",
+          "        hasMore: false,",
+          "        nextCursor: null",
+          "      }",
           "    });",
           "",
           "    const archivedOnlyResponse = await app.inject({",
@@ -1747,7 +1863,11 @@ function renderApiRoutesIntegrationTest(
           "          organizationId: session.organizationId,",
           '          updatedAt: expect.any(String)',
           "        }",
-          "      ]",
+          "      ],",
+          "      pageInfo: {",
+          "        hasMore: false,",
+          "        nextCursor: null",
+          "      }",
           "    });",
           "",
           "    const unarchiveResponse = await app.inject({",
@@ -1779,7 +1899,11 @@ function renderApiRoutesIntegrationTest(
           "          organizationId: session.organizationId,",
           '          updatedAt: expect.any(String)',
           "        }",
-          "      ]",
+          "      ],",
+          "      pageInfo: {",
+          "        hasMore: false,",
+          "        nextCursor: null",
+          "      }",
           "    });"
         ].join("\n")
       : "",
@@ -1806,7 +1930,11 @@ function renderApiRoutesIntegrationTest(
           "",
           "    expect(deletedListResponse.statusCode).toBe(200);",
           "    expect(deletedListResponse.json()).toEqual({",
-          "      items: []",
+          "      items: [],",
+          "      pageInfo: {",
+          "        hasMore: false,",
+          "        nextCursor: null",
+          "      }",
           "    });"
         ].join("\n")
       : "",
@@ -1937,7 +2065,7 @@ function renderApiServiceTest(context: ReturnType<typeof createTemplateContext>)
     "        return undefined;",
     "      },",
     "      async list() {",
-    "        return [];",
+    "        return { items: [], pageInfo: { hasMore: false, nextCursor: null } };",
     "      },",
     isArchiveEnabled(context)
       ? [
@@ -1984,14 +2112,51 @@ function renderWebApiClient(context: ReturnType<typeof createTemplateContext>) {
     ":organizationId",
     "${organizationId}"
   );
+  const filterFields = getListFilterFields(context);
+  const sortableValues = getListSortableFields(context)
+    .map((field) => JSON.stringify(field.name))
+    .join(", ");
+  const listOptionFields = [
+    isArchiveEnabled(context)
+      ? 'archived?: "exclude" | "include" | "only";'
+      : "",
+    "cursor?: string;",
+    "limit?: number;",
+    "query?: string;",
+    `sortBy?: ${sortableValues
+      .split(", ")
+      .map((value) => value)
+      .join(" | ")};`,
+    'sortDirection?: "asc" | "desc";',
+    ...filterFields.map((field) => `    ${field.name}?: ${renderTypeScriptFieldType(field)};`)
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const listQueryEntries = [
+    isArchiveEnabled(context) ? "    archived: options?.archived," : "",
+    "    cursor: options?.cursor,",
+    "    limit: options?.limit,",
+    "    query: options?.query,",
+    "    sortBy: options?.sortBy,",
+    "    sortDirection: options?.sortDirection,",
+    ...filterFields.map((field) => `    ${field.name}: options?.${field.name},`)
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return [
     'import type { ApiClient } from "@/src/lib/api/api-client";',
     `import { ${context.resource.resource}RecordSchema } from "@/src/features/${context.resourcePath}/domain/schemas";`,
     'import { z } from "zod";',
     "",
+    `const ${context.resource.resource}PageInfoSchema = z.object({`,
+    "  hasMore: z.boolean(),",
+    "  nextCursor: z.string().nullable()",
+    "});",
+    "",
     `const ${context.resource.resource}ListResponseSchema = z.object({`,
-    `  items: z.array(${context.resource.resource}RecordSchema)`,
+    `  items: z.array(${context.resource.resource}RecordSchema),`,
+    `  pageInfo: ${context.resource.resource}PageInfoSchema`,
     "});",
     "",
     "export function createResourceClient(apiClient: ApiClient) {",
@@ -2012,12 +2177,15 @@ function renderWebApiClient(context: ReturnType<typeof createTemplateContext>) {
     "        })",
     "      );",
     "    },",
-    `    async list(organizationId: string${isArchiveEnabled(context) ? ', options?: { archived?: "exclude" | "include" | "only" }' : ""}) {`,
+    "    async list(",
+    "      organizationId: string,",
+    "      options?: {",
+    listOptionFields,
+    "      }",
+    "    ) {",
     `      return ${context.resource.resource}ListResponseSchema.parse(`,
     "        await apiClient.request({",
-    isArchiveEnabled(context)
-      ? `          path: \`${organizationPath}\${buildArchiveQuery(options?.archived)}\` as never`
-      : `          path: \`${organizationPath}\` as never`,
+    `          path: \`${organizationPath}\${buildListQuery(options)}\` as never`,
     "        })",
     "      );",
     "    },",
@@ -2064,18 +2232,26 @@ function renderWebApiClient(context: ReturnType<typeof createTemplateContext>) {
     ,
     "  };",
     "}",
-    isArchiveEnabled(context)
-      ? [
-          "",
-          'function buildArchiveQuery(archived?: "exclude" | "include" | "only") {',
-          "  if (!archived) {",
-          '    return "";',
-          "  }",
-          "",
-          "  return `?${new URLSearchParams({ archived }).toString()}`;",
-          "}"
-        ].join("\n")
-      : ""
+    "",
+    "function buildListQuery(options?: {",
+    listOptionFields,
+    "}) {",
+    "  const query = new URLSearchParams();",
+    "",
+    "  for (const [key, value] of Object.entries({",
+    listQueryEntries,
+    "  })) {",
+    "    if (value === undefined || value === null || value === \"\") {",
+    "      continue;",
+    "    }",
+    "",
+    "    query.set(key, String(value));",
+    "  }",
+    "",
+    "  const queryString = query.toString();",
+    "",
+    "  return queryString.length > 0 ? `?${queryString}` : \"\";",
+    "}"
   ]
     .filter(Boolean)
     .join("\n");
@@ -2126,6 +2302,7 @@ function renderWebScreen(context: ReturnType<typeof createTemplateContext>) {
     "  organizationId?: string;",
     "  projectId?: string;",
     `  relationPresentations?: ${context.pascalName}RelationPresentations;`,
+    "  resourceQuery?: string;",
     "  resourceBasePath?: string;",
     "}) {",
     "  if (input.items.length === 0) {",
@@ -2138,6 +2315,7 @@ function renderWebScreen(context: ReturnType<typeof createTemplateContext>) {
     "      organizationId={input.organizationId}",
     "      projectId={input.projectId}",
     "      relationPresentations={input.relationPresentations}",
+    "      resourceQuery={input.resourceQuery}",
     "      resourceBasePath={input.resourceBasePath}",
     "    />",
     "  );",
@@ -2281,6 +2459,7 @@ function renderWebTable(context: ReturnType<typeof createTemplateContext>) {
     "  organizationId?: string;",
     "  projectId?: string;",
     `  relationPresentations?: ${context.pascalName}RelationPresentations;`,
+    "  resourceQuery?: string;",
     "  resourceBasePath?: string;",
     "}) {",
     "  const showActions = Boolean(input.organizationId && input.resourceBasePath);",
@@ -2332,9 +2511,13 @@ function renderWebTable(context: ReturnType<typeof createTemplateContext>) {
     "}",
     "",
     `function buildResourceHref(`,
-    `  input: Pick<${context.pascalName}TableParameters, "organizationId" | "projectId" | "resourceBasePath">,`,
+    `  input: Pick<${context.pascalName}TableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,`,
     "  id: string",
     ") {",
+    "  if (input.resourceQuery) {",
+    "    return `${input.resourceBasePath}/${id}?${input.resourceQuery}`;",
+    "  }",
+    "",
     "  const query = new URLSearchParams({",
     '    organizationId: input.organizationId ?? ""',
     "  });",
@@ -2347,9 +2530,13 @@ function renderWebTable(context: ReturnType<typeof createTemplateContext>) {
     "}",
     "",
     `function buildEditHref(`,
-    `  input: Pick<${context.pascalName}TableParameters, "organizationId" | "projectId" | "resourceBasePath">,`,
+    `  input: Pick<${context.pascalName}TableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,`,
     "  id: string",
     ") {",
+    "  if (input.resourceQuery) {",
+    "    return `${input.resourceBasePath}/${id}/edit?${input.resourceQuery}`;",
+    "  }",
+    "",
     "  const query = new URLSearchParams({",
     '    organizationId: input.organizationId ?? ""',
     "  });",
@@ -2366,6 +2553,7 @@ function renderWebTable(context: ReturnType<typeof createTemplateContext>) {
     "  organizationId?: string;",
     "  projectId?: string;",
     `  relationPresentations?: ${context.pascalName}RelationPresentations;`,
+    "  resourceQuery?: string;",
     "  resourceBasePath?: string;",
     "}"
   ].join("\n");
@@ -2411,7 +2599,7 @@ function renderWebClientTest(context: ReturnType<typeof createTemplateContext>) 
     'describe("createResourceClient", () => {',
     `  it("loads ${context.pluralLabel.toLowerCase()} through the API client", async () => {`,
     "    const requests: unknown[] = [];",
-    `    const client = createResourceClient(createRecordingApiClient(requests, { items: [] }));`,
+    `    const client = createResourceClient(createRecordingApiClient(requests, { items: [], pageInfo: { hasMore: false, nextCursor: null } }));`,
     "",
     '    await client.list("00000000-0000-0000-0000-000000000001");',
     "",
@@ -2577,6 +2765,123 @@ function getArchiveFieldName(context: ReturnType<typeof createTemplateContext>) 
   return context.resource.archive.field ?? "archivedAt";
 }
 
+function getListFilterFields(context: ReturnType<typeof createTemplateContext>) {
+  return context.resource.api.filters
+    .map((fieldName) =>
+      context.resource.fields.find((field) => field.name === fieldName)
+    )
+    .filter(
+      (
+        field
+      ): field is ReturnType<typeof createTemplateContext>["resource"]["fields"][number] =>
+        field !== undefined
+    );
+}
+
+function getListSortableFields(context: ReturnType<typeof createTemplateContext>) {
+  const baseFields = [
+    {
+      name: "createdAt",
+      type: "datetime"
+    },
+    {
+      name: "updatedAt",
+      type: "datetime"
+    }
+  ];
+  const resourceFields = context.resource.fields.filter(
+    (field) =>
+      field.required &&
+      field.sortable &&
+      ["datetime", "email", "enum", "string", "uuid"].includes(field.type)
+  );
+
+  return [...baseFields, ...resourceFields];
+}
+
+function renderGeneratedListInputSchemaLines(
+  context: ReturnType<typeof createTemplateContext>
+) {
+  const lines: string[] = [];
+
+  if (isArchiveEnabled(context)) {
+    lines.push('  archived: z.enum(["exclude", "include", "only"]).optional(),');
+  }
+
+  lines.push('  cursor: z.string().min(1).optional(),');
+  lines.push("  limit: z.number().int().positive().max(100).optional(),");
+  lines.push("  query: z.string().trim().min(1).optional(),");
+
+  const sortableValues = getListSortableFields(context).map((field) =>
+    JSON.stringify(field.name)
+  );
+
+  lines.push(
+    `  sortBy: z.enum([${sortableValues.join(", ")}]).default("createdAt"),`
+  );
+  lines.push('  sortDirection: z.enum(["asc", "desc"]).default("desc"),');
+
+  for (const field of getListFilterFields(context)) {
+    lines.push(`  ${field.name}: ${renderZodOptionalField(field)},`);
+  }
+
+  const lastLine = lines.at(-1);
+
+  if (lastLine) {
+    lines[lines.length - 1] = lastLine.replace(/,$/, "");
+  }
+
+  return lines;
+}
+
+function renderRouteListQuerySchemaLines(
+  context: ReturnType<typeof createTemplateContext>
+) {
+  const lines: string[] = [];
+
+  if (isArchiveEnabled(context)) {
+    lines.push('  archived: z.enum(["exclude", "include", "only"]).optional(),');
+  }
+
+  lines.push('  cursor: z.string().min(1).optional(),');
+  lines.push("  limit: z.coerce.number().int().positive().max(100).optional(),");
+  lines.push("  query: z.string().trim().min(1).optional(),");
+
+  const sortableValues = getListSortableFields(context).map((field) =>
+    JSON.stringify(field.name)
+  );
+
+  lines.push(
+    `  sortBy: z.enum([${sortableValues.join(", ")}]).default("createdAt"),`
+  );
+  lines.push('  sortDirection: z.enum(["asc", "desc"]).default("desc"),');
+
+  for (const field of getListFilterFields(context)) {
+    lines.push(`  ${field.name}: ${renderRouteQuerySchemaField(field)},`);
+  }
+
+  const lastLine = lines.at(-1);
+
+  if (lastLine) {
+    lines[lines.length - 1] = lastLine.replace(/,$/, "");
+  }
+
+  return lines;
+}
+
+function renderRouteQuerySchemaField(
+  field: ReturnType<typeof createTemplateContext>["resource"]["fields"][number]
+) {
+  switch (field.type) {
+    case "boolean":
+      return 'z.enum(["true", "false"]).transform((value) => value === "true").optional()';
+    case "datetime":
+      return "z.string().datetime().optional()";
+    default:
+      return renderZodOptionalField(field);
+  }
+}
+
 function getWorkflowFieldValues(context: ReturnType<typeof createTemplateContext>) {
   const workflowField = context.resource.fields.find(
     (field) => field.name === context.resource.workflow?.field
@@ -2739,6 +3044,27 @@ function renderHtmlInputType(
       return "email";
     default:
       return "text";
+  }
+}
+
+function renderTypeScriptFieldType(
+  field: FrameworkResourceSpec["fields"][number]
+) {
+  switch (field.type) {
+    case "boolean":
+      return "boolean";
+    case "datetime":
+    case "email":
+    case "string":
+    case "text":
+    case "uuid":
+      return "string";
+    case "enum":
+      return (field.values ?? [])
+        .map((value) => JSON.stringify(value))
+        .join(" | ");
+    default:
+      return "string";
   }
 }
 

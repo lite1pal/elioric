@@ -34,7 +34,8 @@ export default async function ResourceDetailPage({
   const workspaceSuffix = buildWorkspaceSuffix(
     data.workspace.activeOrganizationId ?? "",
     data.workspace.activeProjectId ?? undefined,
-    data.archivedFilter
+    data.listQuery,
+    { includeCursor: true }
   );
   const listHref = "/todo/todos" + workspaceSuffix;
   const editHref = data.item ? "/todo/todos" + `/${data.item.id}/edit${workspaceSuffix}` : listHref;
@@ -85,7 +86,12 @@ export default async function ResourceDetailPage({
               <input name="todoId" type="hidden" value={data.item.id} />
               <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
               <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-              <input name="archived" type="hidden" value={data.archivedFilter} />
+          <input name="list_archived" type="hidden" value={data.listQuery.archived} />
+          <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
+          <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
+          <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
+          <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
+          <input name="list_status" type="hidden" value={data.listQuery.status ?? ""} />
               <button className="rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">{data.item.archivedAt ? "Restore Todo" : "Archive Todo"}</button>
             </form>
           </section>
@@ -130,18 +136,36 @@ function renderRelationAwareDetailValue(
 
 function buildWorkspaceSuffix(
   organizationId: string,
-  projectId?: string,
-  archived?: "exclude" | "include" | "only"
+  projectId: string | undefined,
+  query: Record<string, string | number | boolean | undefined> & { cursor?: string },
+  options?: {
+    includeCursor?: boolean;
+  }
 ) {
-  const query = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams({ organizationId });
 
   if (projectId) {
-    query.set("projectId", projectId);
+    search.set("projectId", projectId);
   }
 
-  if (archived) {
-    query.set("archived", archived);
+  for (const [key, value] of Object.entries({
+    archived: query.archived,
+    query: query.query,
+    limit: query.limit,
+    sortBy: query.sortBy !== "createdAt" ? query.sortBy : undefined,
+    sortDirection: query.sortDirection !== "desc" ? query.sortDirection : undefined,
+    status: query.status,
+  })) {
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    search.set(key, String(value));
   }
 
-  return `?${query.toString()}`;
+  if (options?.includeCursor && query.cursor) {
+    search.set("cursor", query.cursor);
+  }
+
+  return `?${search.toString()}`;
 }

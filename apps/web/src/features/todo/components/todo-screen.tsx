@@ -18,6 +18,7 @@ export function TodoScreen(input: {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TodoRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }) {
   if (input.items.length === 0) {
@@ -30,6 +31,7 @@ export function TodoScreen(input: {
       organizationId={input.organizationId}
       projectId={input.projectId}
       relationPresentations={input.relationPresentations}
+      resourceQuery={input.resourceQuery}
       resourceBasePath={input.resourceBasePath}
     />
   );

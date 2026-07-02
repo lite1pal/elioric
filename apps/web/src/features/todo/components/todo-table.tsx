@@ -15,6 +15,7 @@ export function TodoTable(input: {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TodoRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }) {
   const showActions = Boolean(input.organizationId && input.resourceBasePath);
@@ -72,9 +73,13 @@ function renderRelationAwareValue(
 }
 
 function buildResourceHref(
-  input: Pick<TodoTableParameters, "organizationId" | "projectId" | "resourceBasePath">,
+  input: Pick<TodoTableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,
   id: string
 ) {
+  if (input.resourceQuery) {
+    return `${input.resourceBasePath}/${id}?${input.resourceQuery}`;
+  }
+
   const query = new URLSearchParams({
     organizationId: input.organizationId ?? ""
   });
@@ -87,9 +92,13 @@ function buildResourceHref(
 }
 
 function buildEditHref(
-  input: Pick<TodoTableParameters, "organizationId" | "projectId" | "resourceBasePath">,
+  input: Pick<TodoTableParameters, "organizationId" | "projectId" | "resourceBasePath" | "resourceQuery">,
   id: string
 ) {
+  if (input.resourceQuery) {
+    return `${input.resourceBasePath}/${id}/edit?${input.resourceQuery}`;
+  }
+
   const query = new URLSearchParams({
     organizationId: input.organizationId ?? ""
   });
@@ -106,5 +115,6 @@ interface TodoTableParameters {
   organizationId?: string;
   projectId?: string;
   relationPresentations?: TodoRelationPresentations;
+  resourceQuery?: string;
   resourceBasePath?: string;
 }
