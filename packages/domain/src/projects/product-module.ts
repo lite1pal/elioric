@@ -4,9 +4,9 @@ import type {
   ProductModuleShellConfig,
   ProductModuleWorkspaceScope,
   RegisteredProductModule
-} from "../product/runtime-module.js";
+} from "../product/runtime-module";
 
-import { projectsProduct } from "./product.js";
+import { projectsProduct } from "./product";
 
 const projectsOnboardingCopy: ProductModuleOnboardingCopy = {
   completeSummaryDescription:

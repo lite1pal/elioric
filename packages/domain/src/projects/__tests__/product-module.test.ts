@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { projectsProductModule } from "../product-module.js";
+import { projectsProductModule } from "../product-module";
 
 describe("projectsProductModule", () => {
   it("builds workspace-aware shell navigation from the product manifest", () => {

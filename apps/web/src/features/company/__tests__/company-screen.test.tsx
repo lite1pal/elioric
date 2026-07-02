@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { CompanyScreen } from "../components/company-screen.js";
+import { CompanyScreen } from "../components/company-screen";
 
 describe("CompanyScreen", () => {
   it("renders the empty state when no companies exist", () => {

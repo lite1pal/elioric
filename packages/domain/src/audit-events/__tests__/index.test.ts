@@ -3,14 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   productDefinitionSchema,
   productModuleManifestSchema
-} from "../../product/index.js";
+} from "../../product/index";
 
 import {
   auditTrailProduct,
   auditOnboardingSteps,
   ingestAuditEventSchema,
   toAuditOnboardingCompletedAtByStep
-} from "../index.js";
+} from "../index";
 
 describe("audit event schemas", () => {
   it("accepts the MVP ingestion shape", () => {

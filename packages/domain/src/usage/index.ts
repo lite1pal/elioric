@@ -1,6 +1,6 @@
-import { getUtcMonthWindow } from "../time/index.js";
+import { getUtcMonthWindow } from "../time/index";
 
-import type { UtcMonthWindow } from "../time/index.js";
+import type { UtcMonthWindow } from "../time/index";
 
 export interface UsageMeterDefinition<TMeterId extends string = string> {
   id: TMeterId;

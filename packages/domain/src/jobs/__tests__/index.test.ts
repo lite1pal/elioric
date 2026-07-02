@@ -6,7 +6,7 @@ import {
   jobNameSchema,
   jobPayloadSchema,
   jobStatusSchema
-} from "../index.js";
+} from "../index";
 
 describe("jobs domain", () => {
   it("parses a valid generic job envelope", () => {

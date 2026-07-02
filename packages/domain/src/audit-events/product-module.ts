@@ -1,5 +1,5 @@
-import { auditOnboardingStepIds, type AuditOnboardingStepId } from "./onboarding.js";
-import { auditTrailProduct, type AuditTrailWorkspaceSettingsContent } from "./product.js";
+import { auditOnboardingStepIds, type AuditOnboardingStepId } from "./onboarding";
+import { auditTrailProduct, type AuditTrailWorkspaceSettingsContent } from "./product";
 
 export interface AuditTrailWorkspaceScope {
   activeOrganizationId?: string;

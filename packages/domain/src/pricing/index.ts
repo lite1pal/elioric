@@ -1,9 +1,9 @@
-import { getUtcMonthWindow } from "../time/index.js";
-import { summarizeUsageMeter } from "../usage/index.js";
+import { getUtcMonthWindow } from "../time/index";
+import { summarizeUsageMeter } from "../usage/index";
 
-import type { UtcMonthWindow } from "../time/index.js";
+import type { UtcMonthWindow } from "../time/index";
 
-export { getUtcMonthWindow } from "../time/index.js";
+export { getUtcMonthWindow } from "../time/index";
 
 export const pricingPlanIds = ["starter", "growth", "scale"] as const;
 

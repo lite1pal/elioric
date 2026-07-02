@@ -4,7 +4,7 @@ import {
   getPricingPlan,
   getUtcMonthWindow,
   summarizePricingUsage
-} from "../index.js";
+} from "../index";
 
 describe("pricing domain", () => {
   it("looks up plans from the code-defined catalog", () => {

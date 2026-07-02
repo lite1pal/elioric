@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApiClient, ApiRequestOptions } from "@/src/lib/api/api-client";
-import { createResourceClient } from "../api/deal-client.js";
+import { createResourceClient } from "../api/deal-client";
 
 describe("createResourceClient", () => {
   it("loads deals through the API client", async () => {

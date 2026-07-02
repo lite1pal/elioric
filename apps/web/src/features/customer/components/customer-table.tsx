@@ -1,4 +1,4 @@
-import type { CustomerRecord } from "../domain/schemas.js";
+import type { CustomerRecord } from "../domain/schemas";
 
 type CustomerRelationPresentation = {
   href?: string;

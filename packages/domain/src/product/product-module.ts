@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { OnboardingStepDefinition } from "../onboarding/index.js";
+import type { OnboardingStepDefinition } from "../onboarding/index";
 
 import {
   onboardingStepDefinitionSchema,
@@ -11,7 +11,7 @@ import {
   type ProductDefinition,
   type ProductNavItem,
   type ProductUsageMeterDefinition
-} from "./product-definition.js";
+} from "./product-definition";
 
 const nonEmptyStringSchema = z.string().trim().min(1);
 

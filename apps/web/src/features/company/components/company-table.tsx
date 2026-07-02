@@ -1,4 +1,4 @@
-import type { CompanyRecord } from "../domain/schemas.js";
+import type { CompanyRecord } from "../domain/schemas";
 
 type CompanyRelationPresentation = {
   href?: string;

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { DealScreen } from "../components/deal-screen.js";
+import { DealScreen } from "../components/deal-screen";
 
 describe("DealScreen", () => {
   it("renders the empty state when no deals exist", () => {

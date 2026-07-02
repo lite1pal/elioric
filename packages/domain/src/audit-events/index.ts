@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export * from "./onboarding.js";
-export * from "./product-module.js";
-export * from "./product.js";
+export * from "./onboarding";
+export * from "./product-module";
+export * from "./product";
 
 export const auditEventMetadataSchema = z
   .record(z.string(), z.unknown())

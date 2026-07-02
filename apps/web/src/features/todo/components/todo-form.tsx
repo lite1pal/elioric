@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { TodoRecord } from "../domain/schemas.js";
+import type { TodoRecord } from "../domain/schemas";
 
 type TodoFormRelationOption = {
   label: string;

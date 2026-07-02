@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { summarizeUsageMeter } from "../index.js";
+import { summarizeUsageMeter } from "../index";
 
 describe("summarizeUsageMeter", () => {
   it("summarizes a generic usage meter over the current UTC month", () => {

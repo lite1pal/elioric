@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { CompanyRecord } from "../domain/schemas.js";
+import type { CompanyRecord } from "../domain/schemas";
 
 type CompanyFormRelationOption = {
   label: string;

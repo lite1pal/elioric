@@ -9,7 +9,7 @@ import {
   billingStatusSchema,
   billingSubscriptionSchema,
   linkBillingPlanToEntitlementPlan
-} from "../index.js";
+} from "../index";
 
 describe("billing domain", () => {
   it("parses a valid billing customer", () => {

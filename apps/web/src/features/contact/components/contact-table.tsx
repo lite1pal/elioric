@@ -1,4 +1,4 @@
-import type { ContactRecord } from "../domain/schemas.js";
+import type { ContactRecord } from "../domain/schemas";
 
 type ContactRelationPresentation = {
   href?: string;

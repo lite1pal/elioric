@@ -1,7 +1,7 @@
 import type {
   ProductDefinition,
   ProductModuleManifest
-} from "../product/index.js";
+} from "../product/index";
 
 type ProjectsProductDefinition = ProductModuleManifest &
   ProductDefinition & {

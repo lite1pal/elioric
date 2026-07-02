@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { OnboardingStepDefinition } from "../onboarding/index.js";
+import type { OnboardingStepDefinition } from "../onboarding/index";
 
 export interface ProductUsageMeterDefinition<TMeterKey extends string = string> {
   key: TMeterKey;

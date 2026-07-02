@@ -5,7 +5,7 @@ import {
   installedProductStateSchema,
   productDefinitionSchema,
   productModuleManifestSchema
-} from "../index.js";
+} from "../index";
 
 describe("productDefinitionSchema", () => {
   it("accepts a generic product definition with reusable onboarding steps", () => {

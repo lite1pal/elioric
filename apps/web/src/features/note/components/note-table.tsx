@@ -1,4 +1,4 @@
-import type { NoteRecord } from "../domain/schemas.js";
+import type { NoteRecord } from "../domain/schemas";
 
 type NoteRelationPresentation = {
   href?: string;

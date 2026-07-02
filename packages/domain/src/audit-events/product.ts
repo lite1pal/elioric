@@ -1,12 +1,12 @@
 import type {
   ProductDefinition,
   ProductModuleManifest
-} from "../product/index.js";
+} from "../product/index";
 
 import {
   auditOnboardingStepIds,
   auditOnboardingSteps
-} from "./onboarding.js";
+} from "./onboarding";
 
 export type AuditTrailOnboardingActionHref =
   | "access-settings"

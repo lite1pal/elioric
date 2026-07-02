@@ -7,7 +7,7 @@ import {
   planEntitlementSchema,
   productPlanEntitlementSchema,
   summarizeEntitlements
-} from "../index.js";
+} from "../index";
 
 describe("entitlements domain", () => {
   const entitlement = {

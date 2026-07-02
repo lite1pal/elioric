@@ -1,4 +1,4 @@
-import type { OnboardingStepDefinition } from "../onboarding/index.js";
+import type { OnboardingStepDefinition } from "../onboarding/index";
 
 export const auditOnboardingStepIds = [
   "project_created",

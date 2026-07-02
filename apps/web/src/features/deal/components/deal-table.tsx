@@ -1,4 +1,4 @@
-import type { DealRecord } from "../domain/schemas.js";
+import type { DealRecord } from "../domain/schemas";
 
 type DealRelationPresentation = {
   href?: string;

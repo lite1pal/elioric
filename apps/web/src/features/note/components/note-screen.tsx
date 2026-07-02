@@ -1,7 +1,7 @@
-import type { NoteRecord } from "../domain/schemas.js";
+import type { NoteRecord } from "../domain/schemas";
 
-import { NoteEmptyState } from "./note-empty-state.js";
-import { NoteTable } from "./note-table.js";
+import { NoteEmptyState } from "./note-empty-state";
+import { NoteTable } from "./note-table";
 
 type NoteRelationPresentation = {
   href?: string;

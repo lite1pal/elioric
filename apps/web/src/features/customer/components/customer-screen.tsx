@@ -1,7 +1,7 @@
-import type { CustomerRecord } from "../domain/schemas.js";
+import type { CustomerRecord } from "../domain/schemas";
 
-import { CustomerEmptyState } from "./customer-empty-state.js";
-import { CustomerTable } from "./customer-table.js";
+import { CustomerEmptyState } from "./customer-empty-state";
+import { CustomerTable } from "./customer-table";
 
 type CustomerRelationPresentation = {
   href?: string;

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isRequiredOnboardingStep,
   summarizeOnboardingProgress
-} from "../index.js";
+} from "../index";
 
 const auditSteps = [
   {

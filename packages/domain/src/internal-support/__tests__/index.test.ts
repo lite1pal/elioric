@@ -5,7 +5,7 @@ import {
   canPerformSupportLookup,
   getInternalSupportRole,
   isInternalSupportUser
-} from "../index.js";
+} from "../index";
 
 describe("internal support role helpers", () => {
   it("defaults missing users to no support access", () => {

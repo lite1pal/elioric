@@ -1,4 +1,4 @@
-import type { ProductModuleManifest } from "./product-module.js";
+import type { ProductModuleManifest } from "./product-module";
 
 export interface ProductModuleChrome {
   errorHeading: string;
