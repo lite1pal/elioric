@@ -530,10 +530,10 @@ function renderDbSchema(context: ReturnType<typeof createTemplateContext>) {
   }
 
   const indexLines = [
-    `    index("${context.resourcePath}s_organization_id_idx").on(table.organizationId)`,
+    `    index("${getDbTableName(context.resource)}_organization_id_idx").on(table.organizationId)`,
     ...context.resource.relations.map(
       (relation) =>
-        `    index("${context.resourcePath}s_${toSnakeCase(relation.field)}_idx").on(table.${relation.field})`
+        `    index("${getDbTableName(context.resource)}_${toSnakeCase(relation.field)}_idx").on(table.${relation.field})`
     )
   ];
 
@@ -548,7 +548,7 @@ function renderDbSchema(context: ReturnType<typeof createTemplateContext>) {
       ),
     "",
     `export const ${context.resource.resource}Table = pgTable(`,
-    `  "${context.resourcePath}s",`,
+    `  "${getDbTableName(context.resource)}",`,
     "  {",
     fieldLines.join("\n"),
     "  },",
@@ -2903,7 +2903,23 @@ function formatGeneratedResourcePolicyRule(
 function getPluralPath(resource: FrameworkResourceSpec) {
   const segments = resource.api.prefix.split("/").filter(Boolean);
 
-  return segments.at(-1) ?? `${toKebabCase(resource.resource)}s`;
+  return segments.at(-1) ?? pluralizeSegment(toKebabCase(resource.resource));
+}
+
+function getDbTableName(resource: FrameworkResourceSpec) {
+  return pluralizeSegment(toKebabCase(resource.resource));
+}
+
+function pluralizeSegment(value: string) {
+  if (/[sxz]$/i.test(value) || /(ch|sh)$/i.test(value)) {
+    return `${value}es`;
+  }
+
+  if (/[^aeiou]y$/i.test(value)) {
+    return `${value.slice(0, -1)}ies`;
+  }
+
+  return `${value}s`;
 }
 
 function getDrizzleImport(type: FrameworkResourceSpec["fields"][number]["type"]) {

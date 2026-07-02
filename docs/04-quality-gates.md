@@ -82,6 +82,12 @@ deterministic; generated route and client tests must prove list responses
 include `pageInfo`; and the installed todo proof must preserve list query
 state through generated product-owned flows instead of resetting to a fixed
 default view.
+The committed CRM proof now extends that release signal beyond one resource:
+generated CRM web tests must prove the product-owned flow across company,
+contact, deal, and note; and the API integration harness must prove the same
+resource chain plus one generated workflow transition and archive path against
+Postgres. Generator changes that touch DB naming or initial SQL shape are not
+complete until that multi-resource CRM proof stays green.
 Archive-enabled generated resources now also need migration coverage in the
 real test database, because schema-only generator changes are not complete
 until the committed proof still passes against Postgres after

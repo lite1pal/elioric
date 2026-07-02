@@ -119,18 +119,22 @@ This file tracks task-system and agent-workflow work items.
     - The generated workflow view reuses generated query and transition seams instead of custom product code
     - One installed proof product demonstrates the workflow view end to end
 
-- [ ] T-125 Prove a CLI-generated CRM product end to end
-  status: ready
+- [x] T-125 Prove a CLI-generated CRM product end to end
+  status: done
   priority: high
   owner: codex
   branch:
   pr:
   last_updated: 2026-07-02
-  completed:
+  completed: 2026-07-02
   blocked_reason:
   notes:
     - 2026-07-02: the framework needs one serious second product proof after todo so CRM claims are backed by committed runtime verification
     - 2026-07-02: this task should use only supported CLI and generator seams, not hand-built runtime stitching
+    - 2026-07-02: completed by committing the CLI-generated `crm` product spec plus generated `company`, `contact`, `deal`, and `note` runtime slices under API, web, domain, DB schema, and migrations
+    - 2026-07-02: added a generated CRM web proof and a real Postgres-backed CRM API integration proof covering create company -> create contact -> create deal -> advance stage -> create note -> archive deal
+    - 2026-07-02: fixed generator defects uncovered by the proof, including relation-presentation typing for generated product pages, correct `company -> companies` DB inflection, and archive-aware initial SQL migrations for archive-enabled generated resources
+    - 2026-07-02: proof still intentionally uses raw relation ids and bounded CRUD-plus-workflow pages; richer widgets, related-detail composition, and workflow views remain later tasks
   files:
     - specs/*
     - apps/api/src/modules/generated/*

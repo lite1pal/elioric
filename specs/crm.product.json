@@ -1,0 +1,495 @@
+{
+  "description": "CRM is a generated CRM workspace product for tracking companies, contacts, deals, and notes through Elioric's reusable product seams.",
+  "home": {
+    "ctaLabel": "Open Deals",
+    "description": "Manage companies, contacts, deals, and notes through one generated multi-resource CRM workspace without hand-editing shared runtime seams.",
+    "title": "CRM workspace"
+  },
+  "id": "crm",
+  "name": "CRM",
+  "resources": [
+    {
+      "listPath": "/crm/companies",
+      "navLabel": "Companies",
+      "resource": {
+        "api": {
+          "filters": [
+            "status"
+          ],
+          "pagination": true,
+          "prefix": "/v1/organizations/:organizationId/companies",
+          "public": false
+        },
+        "archive": {
+          "enabled": true,
+          "field": "archivedAt"
+        },
+        "crud": {
+          "create": true,
+          "delete": false,
+          "list": true,
+          "read": true,
+          "update": true
+        },
+        "fields": [
+          {
+            "hidden": false,
+            "name": "name",
+            "readonly": false,
+            "required": true,
+            "searchable": true,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "hidden": false,
+            "name": "domain",
+            "readonly": false,
+            "required": false,
+            "searchable": true,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "default": "lead",
+            "hidden": false,
+            "name": "status",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "type": "enum",
+            "unique": false,
+            "values": [
+              "lead",
+              "customer",
+              "inactive"
+            ]
+          }
+        ],
+        "indexes": [],
+        "label": "Company",
+        "ownership": "organization",
+        "policy": {
+          "archive": {
+            "mode": "organization-role"
+          },
+          "read": {
+            "mode": "organization-role"
+          },
+          "workflow": {
+            "mode": "organization-role"
+          },
+          "write": {
+            "mode": "organization-role"
+          }
+        },
+        "permissions": {},
+        "pluralLabel": "Companies",
+        "relations": [],
+        "resource": "company",
+        "timestamps": {
+          "createdAtField": "createdAt",
+          "enabled": true,
+          "updatedAtField": "updatedAt"
+        },
+        "ui": {
+          "createPage": false,
+          "detailPage": false,
+          "editPage": false,
+          "listPage": false,
+          "nav": false,
+          "navLabel": "Companies"
+        }
+      }
+    },
+    {
+      "listPath": "/crm/contacts",
+      "navLabel": "Contacts",
+      "resource": {
+        "api": {
+          "filters": [
+            "companyId"
+          ],
+          "pagination": true,
+          "prefix": "/v1/organizations/:organizationId/contacts",
+          "public": false
+        },
+        "archive": {
+          "enabled": true,
+          "field": "archivedAt"
+        },
+        "crud": {
+          "create": true,
+          "delete": false,
+          "list": true,
+          "read": true,
+          "update": true
+        },
+        "fields": [
+          {
+            "hidden": false,
+            "name": "name",
+            "readonly": false,
+            "required": true,
+            "searchable": true,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "hidden": false,
+            "name": "email",
+            "readonly": false,
+            "required": false,
+            "searchable": true,
+            "sortable": true,
+            "type": "email",
+            "unique": false
+          },
+          {
+            "hidden": false,
+            "name": "title",
+            "readonly": false,
+            "required": false,
+            "searchable": true,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "description": "Reference to Company",
+            "hidden": false,
+            "name": "companyId",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "type": "uuid",
+            "unique": false
+          }
+        ],
+        "indexes": [],
+        "label": "Contact",
+        "ownership": "organization",
+        "policy": {
+          "archive": {
+            "mode": "organization-role"
+          },
+          "read": {
+            "mode": "organization-role"
+          },
+          "workflow": {
+            "mode": "organization-role"
+          },
+          "write": {
+            "mode": "organization-role"
+          }
+        },
+        "permissions": {},
+        "pluralLabel": "Contacts",
+        "relations": [
+          {
+            "field": "companyId",
+            "hidden": false,
+            "kind": "belongs-to",
+            "name": "company",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "target": "company",
+            "targetScope": "generated",
+            "unique": false
+          }
+        ],
+        "resource": "contact",
+        "timestamps": {
+          "createdAtField": "createdAt",
+          "enabled": true,
+          "updatedAtField": "updatedAt"
+        },
+        "ui": {
+          "createPage": false,
+          "detailPage": false,
+          "editPage": false,
+          "listPage": false,
+          "nav": false,
+          "navLabel": "Contacts"
+        }
+      }
+    },
+    {
+      "listPath": "/crm/deals",
+      "navLabel": "Deals",
+      "resource": {
+        "api": {
+          "filters": [
+            "stage",
+            "companyId",
+            "ownerId"
+          ],
+          "pagination": true,
+          "prefix": "/v1/organizations/:organizationId/deals",
+          "public": false
+        },
+        "archive": {
+          "enabled": true,
+          "field": "archivedAt"
+        },
+        "crud": {
+          "create": true,
+          "delete": false,
+          "list": true,
+          "read": true,
+          "update": true
+        },
+        "fields": [
+          {
+            "hidden": false,
+            "name": "name",
+            "readonly": false,
+            "required": true,
+            "searchable": true,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "default": "lead",
+            "hidden": false,
+            "name": "stage",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "type": "enum",
+            "unique": false,
+            "values": [
+              "lead",
+              "qualified",
+              "proposal",
+              "won",
+              "lost"
+            ]
+          },
+          {
+            "hidden": false,
+            "name": "amount",
+            "readonly": false,
+            "required": false,
+            "searchable": false,
+            "sortable": true,
+            "type": "string",
+            "unique": false
+          },
+          {
+            "description": "Reference to Company",
+            "hidden": false,
+            "name": "companyId",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "type": "uuid",
+            "unique": false
+          },
+          {
+            "description": "Reference to Owner",
+            "hidden": false,
+            "name": "ownerId",
+            "readonly": false,
+            "required": false,
+            "searchable": false,
+            "sortable": false,
+            "type": "uuid",
+            "unique": false
+          }
+        ],
+        "indexes": [],
+        "label": "Deal",
+        "ownership": "organization",
+        "policy": {
+          "archive": {
+            "mode": "ownership-aware",
+            "ownerField": "ownerId"
+          },
+          "read": {
+            "mode": "ownership-aware",
+            "ownerField": "ownerId"
+          },
+          "workflow": {
+            "mode": "ownership-aware",
+            "ownerField": "ownerId"
+          },
+          "write": {
+            "mode": "ownership-aware",
+            "ownerField": "ownerId"
+          }
+        },
+        "permissions": {},
+        "pluralLabel": "Deals",
+        "relations": [
+          {
+            "field": "companyId",
+            "hidden": false,
+            "kind": "belongs-to",
+            "name": "company",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "target": "company",
+            "targetScope": "generated",
+            "unique": false
+          },
+          {
+            "field": "ownerId",
+            "hidden": false,
+            "kind": "belongs-to",
+            "name": "owner",
+            "readonly": false,
+            "required": false,
+            "searchable": false,
+            "sortable": false,
+            "target": "user",
+            "targetScope": "platform",
+            "unique": false
+          }
+        ],
+        "resource": "deal",
+        "timestamps": {
+          "createdAtField": "createdAt",
+          "enabled": true,
+          "updatedAtField": "updatedAt"
+        },
+        "workflow": {
+          "field": "stage",
+          "initial": "lead",
+          "transitions": {
+            "lead": [
+              "qualified",
+              "lost"
+            ],
+            "qualified": [
+              "proposal",
+              "lost"
+            ],
+            "proposal": [
+              "won",
+              "lost"
+            ],
+            "won": [],
+            "lost": []
+          }
+        },
+        "ui": {
+          "createPage": false,
+          "detailPage": false,
+          "editPage": false,
+          "listPage": false,
+          "nav": false,
+          "navLabel": "Deals"
+        }
+      }
+    },
+    {
+      "listPath": "/crm/notes",
+      "navLabel": "Notes",
+      "resource": {
+        "api": {
+          "filters": [
+            "dealId"
+          ],
+          "pagination": true,
+          "prefix": "/v1/organizations/:organizationId/notes",
+          "public": false
+        },
+        "archive": {
+          "enabled": true,
+          "field": "archivedAt"
+        },
+        "crud": {
+          "create": true,
+          "delete": false,
+          "list": true,
+          "read": true,
+          "update": true
+        },
+        "fields": [
+          {
+            "hidden": false,
+            "name": "body",
+            "readonly": false,
+            "required": true,
+            "searchable": true,
+            "sortable": false,
+            "type": "text",
+            "unique": false
+          },
+          {
+            "description": "Reference to Deal",
+            "hidden": false,
+            "name": "dealId",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "type": "uuid",
+            "unique": false
+          }
+        ],
+        "indexes": [],
+        "label": "Note",
+        "ownership": "organization",
+        "policy": {
+          "archive": {
+            "mode": "organization-role"
+          },
+          "read": {
+            "mode": "organization-role"
+          },
+          "workflow": {
+            "mode": "organization-role"
+          },
+          "write": {
+            "mode": "organization-role"
+          }
+        },
+        "permissions": {},
+        "pluralLabel": "Notes",
+        "relations": [
+          {
+            "field": "dealId",
+            "hidden": false,
+            "kind": "belongs-to",
+            "name": "deal",
+            "readonly": false,
+            "required": true,
+            "searchable": false,
+            "sortable": false,
+            "target": "deal",
+            "targetScope": "generated",
+            "unique": false
+          }
+        ],
+        "resource": "note",
+        "timestamps": {
+          "createdAtField": "createdAt",
+          "enabled": true,
+          "updatedAtField": "updatedAt"
+        },
+        "ui": {
+          "createPage": false,
+          "detailPage": false,
+          "editPage": false,
+          "listPage": false,
+          "nav": false,
+          "navLabel": "Notes"
+        }
+      }
+    }
+  ]
+}

@@ -181,9 +181,12 @@ pnpm saas plan product specs/crm.product.json
 pnpm saas install product specs/todo.product.json
 pnpm saas install product specs/crm.product.json
 pnpm products:backfill todo
+pnpm products:backfill crm
 pnpm db:migrate:test
 pnpm --filter web exec vitest run src/features/todo-product/__tests__/todo-product-flow.test.tsx
+pnpm --filter web exec vitest run src/features/crm-product/__tests__/crm-product-flow.test.tsx
 pnpm --filter @auditrail/api exec vitest run --config vitest.integration.config.ts src/modules/generated/todo/__tests__/routes.integration.test.ts
+pnpm --filter @auditrail/api exec vitest run --config vitest.integration.config.ts src/__tests__/crm-product.integration.test.ts
 ```
 
 The current product-generation slice is intentionally narrow:
@@ -215,12 +218,25 @@ The current product-generation slice is intentionally narrow:
   limit, search query, sort direction, and bounded filter fields; generated
   product pages preserve that query state through create, detail, edit,
   archive, and restore flows without per-product glue code
+- the CRM proof is now committed end to end through supported seams:
+  `init product --template crm`, `plan product`, `install product`,
+  `products:backfill crm`, generated DB schema plus migrations, generated CRM
+  product-owned web routes, and a real Postgres-backed API flow across
+  company, contact, deal, and note
 - the committed proof now covers generated product install, test migration,
   generated web page load, generated server-action
   create/update/archive/unarchive, generated validation feedback with
   preserved draft form values, generated detail/edit routes, explicit
   archived-filter list views, generated next-page navigation, and real API
   create/list/archive/unarchive execution for the installed todo slice
+
+Current CRM limits remain explicit:
+
+- relation fields still use raw ids in generated forms and API payloads
+- the CRM proof is bounded to list/detail/edit/archive/workflow CRUD pages, not
+  dashboards or pipeline views
+- richer field widgets, related detail sections, and reinstall-upgrade
+  semantics still remain separate framework tasks
 
 Prove the committed generated-resource slice against Postgres:
 

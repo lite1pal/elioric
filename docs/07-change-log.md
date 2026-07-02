@@ -2,6 +2,20 @@
 
 ## 2026-07-02
 
+- Completed T-125 by proving a CLI-generated CRM product end to end. The repo
+  now commits the generated `crm` product spec and installed `company`,
+  `contact`, `deal`, and `note` slices; generated CRM web tests now cover a
+  product-owned company -> contact -> deal -> note flow plus deal stage
+  advancement and archive; and a real Postgres-backed API integration test now
+  proves the same path through installed generated routes.
+
+- Hardened generator correctness while closing the CRM proof. Generated
+  product relation loaders now capture non-optional organization ids safely,
+  generated DB schema and SQL migrations now pluralize `company` as
+  `companies`, and archive-enabled generated resources now emit `archived_at`
+  in their initial SQL migrations so multi-resource products install cleanly
+  without manual schema repair.
+
 - Completed T-121 by adding generated filter, sort, and pagination
   primitives for product resources. Generated resource domain contracts now
   emit reusable list-query schemas with cursor, limit, search, sort, and

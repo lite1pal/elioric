@@ -99,7 +99,11 @@ describe("customer generated resource integration", () => {
           organizationId: session.organizationId,
           updatedAt: expect.any(String)
         }
-      ]
+      ],
+      pageInfo: {
+        hasMore: false,
+        nextCursor: null
+      }
     });
     const getResponse = await app.inject({
       method: "GET",

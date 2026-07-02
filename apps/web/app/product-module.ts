@@ -6,6 +6,7 @@ import {
 } from "@auditrail/domain/product";
 import { auditTrailProductModule } from "@auditrail/domain/audit-events";
 import { projectsProductModule } from "@auditrail/domain/projects";
+import { crmProductModule } from "@auditrail/domain/crm";
 import { todoProductModule } from "@auditrail/domain/todo";
 
 import type {
@@ -36,7 +37,8 @@ export interface ShellProductConfig {
 const registeredProductModules = [
   auditTrailProductModule,
   projectsProductModule,
-  todoProductModule
+  todoProductModule,
+  crmProductModule
 ] as const satisfies readonly RegisteredProductModule[];
 
 export function createWebProductRuntime(

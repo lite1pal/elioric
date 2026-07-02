@@ -106,6 +106,34 @@
       "tag": "0014_todo_archive",
       "version": "7",
       "when": 1782970800000
+    },
+    {
+      "breakpoints": true,
+      "idx": 15,
+      "tag": "0015_company",
+      "version": "7",
+      "when": 1782991085778
+    },
+    {
+      "breakpoints": true,
+      "idx": 16,
+      "tag": "0016_contact",
+      "version": "7",
+      "when": 1782991085831
+    },
+    {
+      "breakpoints": true,
+      "idx": 17,
+      "tag": "0017_deal",
+      "version": "7",
+      "when": 1782991085881
+    },
+    {
+      "breakpoints": true,
+      "idx": 18,
+      "tag": "0018_note",
+      "version": "7",
+      "when": 1782991085922
     }
   ]
 }

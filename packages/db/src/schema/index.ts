@@ -6,3 +6,7 @@ export * from "./products.js";
 export * from "./webhooks.js";
 export * from "./customer.js";
 export * from "./todo.js";
+export * from "./company.js";
+export * from "./contact.js";
+export * from "./deal.js";
+export * from "./note.js";

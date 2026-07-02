@@ -1090,6 +1090,11 @@ Current contract:
   installed API contract through generated server clients and server actions,
   and it preserves query-state parameters across create, detail, edit,
   archive, and restore flows
+- the committed CRM proof now loads `/crm/companies`, `/crm/contacts`,
+  `/crm/deals`, and `/crm/notes` through the same generated server-client
+  seam, while the product-level API integration proof exercises
+  `company -> contact -> deal -> note` plus a generated stage transition and
+  deal archive flow against Postgres
 - generated product pages may resolve bounded relation labels and links on the
   web side, but the API contract still returns scalar relation IDs
 - `GET /:id`, `PATCH /:id`, and `DELETE /:id` return `404 not_found` when the

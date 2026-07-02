@@ -6,6 +6,7 @@ import {
 } from "@auditrail/domain/product";
 import { auditTrailProductModule } from "@auditrail/domain/audit-events";
 import { projectsProductModule } from "@auditrail/domain/projects";
+import { crmProductModule } from "@auditrail/domain/crm";
 import { todoProductModule } from "@auditrail/domain/todo";
 
 import {
@@ -62,7 +63,8 @@ const productApiRouteHandlers: Record<string, ProductApiRouteHandler> = {
 const registeredProductModules = [
   auditTrailProductModule,
   projectsProductModule,
-  todoProductModule
+  todoProductModule,
+  crmProductModule
 ] as const satisfies readonly ApiProductModule[];
 
 export function createApiProductRuntime(

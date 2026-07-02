@@ -51,6 +51,26 @@
     "./todo": {
       "import": "./src/todo/index.ts",
       "types": "./src/todo/index.ts"
+    },
+    "./generated/company": {
+      "import": "./src/generated/company/index.ts",
+      "types": "./src/generated/company/index.ts"
+    },
+    "./generated/contact": {
+      "import": "./src/generated/contact/index.ts",
+      "types": "./src/generated/contact/index.ts"
+    },
+    "./generated/deal": {
+      "import": "./src/generated/deal/index.ts",
+      "types": "./src/generated/deal/index.ts"
+    },
+    "./generated/note": {
+      "import": "./src/generated/note/index.ts",
+      "types": "./src/generated/note/index.ts"
+    },
+    "./crm": {
+      "import": "./src/crm/index.ts",
+      "types": "./src/crm/index.ts"
     }
   },
   "scripts": {

@@ -189,6 +189,9 @@ function renderMigrationSql(resource: FrameworkResourceSpec) {
     '  "id" uuid primary key default gen_random_uuid() not null',
     '  "organization_id" uuid not null references "organizations"("id")',
     ...resource.fields.map((field) => renderSqlColumn(field, relationByField.get(field.name))),
+    ...(resource.archive?.enabled
+      ? [`  "${toSnakeCase(resource.archive.field)}" timestamp with time zone`]
+      : []),
     '  "created_at" timestamp with time zone default now() not null',
     '  "updated_at" timestamp with time zone default now() not null'
   ];
@@ -259,7 +262,7 @@ function resolveSqlRelationTargetTable(
     return tableName;
   }
 
-  return `${toKebabCase(relation.target)}s`;
+  return pluralizeSegment(toKebabCase(relation.target));
 }
 
 function createWrite(input: {
@@ -303,7 +306,7 @@ function formatMigrationId(value: number) {
 }
 
 function getTableName(resource: FrameworkResourceSpec) {
-  return `${toKebabCase(resource.resource)}s`;
+  return pluralizeSegment(toKebabCase(resource.resource));
 }
 
 function toKebabCase(value: string) {
@@ -315,4 +318,16 @@ function toKebabCase(value: string) {
 
 function toSnakeCase(value: string) {
   return toKebabCase(value).replace(/-/g, "_");
+}
+
+function pluralizeSegment(value: string) {
+  if (/[sxz]$/i.test(value) || /(ch|sh)$/i.test(value)) {
+    return `${value}es`;
+  }
+
+  if (/[^aeiou]y$/i.test(value)) {
+    return `${value.slice(0, -1)}ies`;
+  }
+
+  return `${value}s`;
 }

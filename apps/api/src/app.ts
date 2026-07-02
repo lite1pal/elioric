@@ -14,6 +14,18 @@ import { registerApiErrorHandler } from "./http-errors.js";
 import { registerApiSchemas, schemaIds } from "./http-schemas.js";
 import { createPostgresApiKeyRepo } from "./modules/api-keys/postgres-repo.js";
 import { registerApiKeyRoutes } from "./modules/api-keys/routes.js";
+import { createNoteService } from "./modules/generated/note/service.js";
+import { registerNoteRoutes } from "./modules/generated/note/routes.js";
+import { createPostgresNoteRepo } from "./modules/generated/note/postgres-repo.js";
+import { createDealService } from "./modules/generated/deal/service.js";
+import { registerDealRoutes } from "./modules/generated/deal/routes.js";
+import { createPostgresDealRepo } from "./modules/generated/deal/postgres-repo.js";
+import { createContactService } from "./modules/generated/contact/service.js";
+import { registerContactRoutes } from "./modules/generated/contact/routes.js";
+import { createPostgresContactRepo } from "./modules/generated/contact/postgres-repo.js";
+import { createCompanyService } from "./modules/generated/company/service.js";
+import { registerCompanyRoutes } from "./modules/generated/company/routes.js";
+import { createPostgresCompanyRepo } from "./modules/generated/company/postgres-repo.js";
 import { createTodoService } from "./modules/generated/todo/service.js";
 import { registerTodoRoutes } from "./modules/generated/todo/routes.js";
 import { createPostgresTodoRepo } from "./modules/generated/todo/postgres-repo.js";
@@ -377,6 +389,34 @@ export function buildApp(options: BuildAppOptions = {}) {
       infrastructureApp.register(registerApiKeyRoutes, {
         prefix: API_VERSION_PREFIX,
         service: apiKeyService,
+      });
+      infrastructureApp.register(registerNoteRoutes, {
+        access: workspaceAccessService,
+        prefix: API_BASE_PATH,
+        service: createNoteService(
+          createPostgresNoteRepo(infrastructureApp.db)
+        )
+      });
+      infrastructureApp.register(registerDealRoutes, {
+        access: workspaceAccessService,
+        prefix: API_BASE_PATH,
+        service: createDealService(
+          createPostgresDealRepo(infrastructureApp.db)
+        )
+      });
+      infrastructureApp.register(registerContactRoutes, {
+        access: workspaceAccessService,
+        prefix: API_BASE_PATH,
+        service: createContactService(
+          createPostgresContactRepo(infrastructureApp.db)
+        )
+      });
+      infrastructureApp.register(registerCompanyRoutes, {
+        access: workspaceAccessService,
+        prefix: API_BASE_PATH,
+        service: createCompanyService(
+          createPostgresCompanyRepo(infrastructureApp.db)
+        )
       });
       infrastructureApp.register(registerTodoRoutes, {
         access: workspaceAccessService,

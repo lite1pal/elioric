@@ -172,6 +172,15 @@ for simple resource-backed products:
   generated API service validates create and update transitions before repo
   writes, and generated product pages surface rejected transitions through the
   existing feedback redirect path
+- the committed CRM proof now exercises the same seams across multiple
+  generated resources together: generated DB schema plus SQL migrations,
+  generated API modules, generated product-owned web routes, and relation
+  presentation loaders work together for `company -> contact -> deal -> note`
+  without shared bootstrap edits
+- the proof also hardened two generator internals that broader product families
+  depend on: generated DB names now use the same pluralization rules as route
+  paths, and archive-enabled resources now emit archive-ready initial SQL
+  migrations instead of relying on follow-up manual fixes
 
 Current product-generation limits are explicit:
 

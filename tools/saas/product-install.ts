@@ -2044,6 +2044,7 @@ function renderRelationPresentationResolverLines(
 
     lines.push(
       "if (input.organizationId) {",
+      "  const organizationId = input.organizationId;",
       `  const ${relation.field}Client = create${targetPascal}ResourceClient(createServerApiClient());`,
       `  const ${relation.field}Ids = Array.from(`,
       "    new Set(",
@@ -2057,9 +2058,9 @@ function renderRelationPresentationResolverLines(
       `  await Promise.all(`,
       `    ${relation.field}Ids.map(async (id) => {`,
       "      try {",
-      `        const record = await ${relation.field}Client.get(input.organizationId, id);`,
+      `        const record = await ${relation.field}Client.get(organizationId, id);`,
       `        ${relation.field}Presentations.set(id, {`,
-      `          href: buildResourcePath(${targetListPath}, record.id, input.organizationId, input.projectId),`,
+      `          href: buildResourcePath(${targetListPath}, record.id, organizationId, input.projectId),`,
       `          label: record.${labelField}?.toString() ?? record.id`,
       "        });",
       "      } catch {",
