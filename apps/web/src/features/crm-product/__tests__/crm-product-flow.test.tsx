@@ -783,17 +783,64 @@ describe("generated crm product flow", () => {
     expect(screen.getByText("Champion confirmed and budget approved.")).toBeTruthy();
     expect(screen.getAllByText("Platform Expansion").length).toBeGreaterThan(0);
   });
+
+  it("renders a no-workspace state and blocks CRM create redirects when no CRM workspace is enabled", async () => {
+    const currentUser = createCurrentUser({
+      includeCrmProduct: false
+    });
+
+    const pageData = await loadDealWorkspacePage({}, { currentUser });
+
+    expect(pageData.workspace.activeOrganizationId).toBeUndefined();
+    expect(pageData.items).toEqual([]);
+
+    requireCurrentUserMock.mockResolvedValue(currentUser);
+
+    render(
+      await DealPage({
+        searchParams: Promise.resolve({})
+      })
+    );
+
+    expect(
+      screen.getByText(
+        "No workspace with the CRM product is enabled for this account yet."
+      )
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create Deal" })).toBeNull();
+
+    redirectMock.mockReset();
+
+    const formData = new FormData();
+    formData.set("name", "Platform Expansion");
+    formData.set("stage", "lead");
+    formData.set("amount", "15000");
+    formData.set("companyId", COMPANY_ID);
+    formData.set("ownerId", USER_ID);
+
+    await createDealWorkspaceAction(formData);
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      `/crm/deals?archived=exclude&feedback=Enable+the+CRM+product+for+a+workspace+before+creating+records.&draft_name=Platform+Expansion&draft_stage=lead&draft_amount=15000&draft_companyId=${encodeURIComponent(COMPANY_ID)}&draft_ownerId=${encodeURIComponent(USER_ID)}`
+    );
+  });
 });
 
-function createCurrentUser(): CurrentUserResponse {
+function createCurrentUser(input?: {
+  includeCrmProduct?: boolean;
+}): CurrentUserResponse {
   return {
     memberships: [
       {
         installedProducts: [
-          {
-            enabled: true,
-            productId: "crm"
-          }
+          ...(input?.includeCrmProduct === false
+            ? []
+            : [
+                {
+                  enabled: true,
+                  productId: "crm" as const
+                }
+              ])
         ],
         onboarding: {
           completedRequiredSteps: 0,

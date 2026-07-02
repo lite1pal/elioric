@@ -89,6 +89,14 @@ export async function createCompanyWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath("/crm/companies", "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the CRM product for a workspace before creating records."
+      }) as never
+    );
+  }
   try {
     const payload = createCompanyInputSchema.parse({
       name: String(formData.get("name") ?? ""),
@@ -278,7 +286,10 @@ function buildWorkspaceSuffix(
     includeCursor?: boolean;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
   if (projectId) {
     search.set("projectId", projectId);
   }
@@ -326,7 +337,10 @@ function buildFailurePath(
     fieldErrors?: CompanyFormFieldErrors;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
   if (projectId) {
     search.set("projectId", projectId);
   }

@@ -1,4 +1,5 @@
 import { AppShell } from "@/src/components/layout/app-shell";
+import { EmptyState } from "@/src/components/ui/empty-state";
 import { requireCurrentUser } from "@/src/features/auth/server/auth-server";
 import { ContactForm } from "@/src/features/contact/components/contact-form";
 import { ContactScreen } from "@/src/features/contact/components/contact-screen";
@@ -57,27 +58,29 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Contacts</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">This generated product route loads real contacts through the API seam and allows inline creation.</p>
         </header>
-        <ContactForm
-          action={createContactWorkspaceAction}
-          defaultValues={data.draftValues}
-          fieldErrors={data.fieldErrors}
-          formError={data.feedback}
-          relationOptions={data.formOptions}
-          submitLabel="Create Contact"
-        >
-          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
-          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-          <input name="list_archived" type="hidden" value={data.listQuery.archived} />
-          <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
-          <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
-          <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
-          <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
-          <input name="list_companyId" type="hidden" value={data.listQuery.companyId ?? ""} />
-        </ContactForm>
-        <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
-          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
-          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-          <label className="grid gap-2">
+        {data.workspace.activeOrganizationId ? (
+          <>
+            <ContactForm
+              action={createContactWorkspaceAction}
+              defaultValues={data.draftValues}
+              fieldErrors={data.fieldErrors}
+              formError={data.feedback}
+              relationOptions={data.formOptions}
+              submitLabel="Create Contact"
+            >
+              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
+              <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
+              <input name="list_archived" type="hidden" value={data.listQuery.archived} />
+              <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
+              <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
+              <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
+              <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
+              <input name="list_companyId" type="hidden" value={data.listQuery.companyId ?? ""} />
+            </ContactForm>
+            <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
+              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
+              <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
+              <label className="grid gap-2">
             <span>Archived</span>
             <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.archived} name="archived">
               <option value="exclude">Active</option>
@@ -118,20 +121,24 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
           <label className="grid gap-2">
             <span>Company Id</span>
             <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.companyId ?? ""} name="companyId" type="text" />
-          </label>
-          <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Apply Filters</button>
-        </form>
-        <ContactScreen
-          items={data.items}
-          organizationId={data.workspace.activeOrganizationId ?? undefined}
-          projectId={data.workspace.activeProjectId ?? undefined}
-          relationPresentations={data.relationPresentations}
-          resourceQuery={resourceQuery}
-          resourceBasePath="/crm/contacts"
-        />
-        {nextPageHref ? (
-          <a className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" href={nextPageHref}>Next Page</a>
-        ) : null}
+              </label>
+              <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Apply Filters</button>
+            </form>
+            <ContactScreen
+              items={data.items}
+              organizationId={data.workspace.activeOrganizationId}
+              projectId={data.workspace.activeProjectId ?? undefined}
+              relationPresentations={data.relationPresentations}
+              resourceQuery={resourceQuery}
+              resourceBasePath="/crm/contacts"
+            />
+            {nextPageHref ? (
+              <a className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" href={nextPageHref}>Next Page</a>
+            ) : null}
+          </>
+        ) : (
+          <EmptyState label="No workspace with the CRM product is enabled for this account yet." />
+        )}
       </div>
     </AppShell>
   );

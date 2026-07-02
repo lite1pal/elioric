@@ -46,12 +46,16 @@ export default async function ProductPage({ searchParams }: ProductPageProps) {
     >
       <CrmHomeScreen
         organizationName={workspace.activeOrganization?.name}
-        resourceLinks={[
-          { href: `/crm/companies${workspaceSuffix}`, label: "Companies" },
-          { href: `/crm/contacts${workspaceSuffix}`, label: "Contacts" },
-          { href: `/crm/deals${workspaceSuffix}`, label: "Deals" },
-          { href: `/crm/notes${workspaceSuffix}`, label: "Notes" },
-        ]}
+        resourceLinks={
+          workspace.activeOrganizationId
+            ? [
+                { href: `/crm/companies${workspaceSuffix}`, label: "Companies" },
+                { href: `/crm/contacts${workspaceSuffix}`, label: "Contacts" },
+                { href: `/crm/deals${workspaceSuffix}`, label: "Deals" },
+                { href: `/crm/notes${workspaceSuffix}`, label: "Notes" }
+              ]
+            : []
+        }
       />
     </AppShell>
   );

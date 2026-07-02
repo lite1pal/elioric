@@ -46,9 +46,11 @@ export default async function ProductPage({ searchParams }: ProductPageProps) {
     >
       <TodoHomeScreen
         organizationName={workspace.activeOrganization?.name}
-        resourceLinks={[
-          { href: `/todo/todos${workspaceSuffix}`, label: "Todos" },
-        ]}
+        resourceLinks={
+          workspace.activeOrganizationId
+            ? [{ href: `/todo/todos${workspaceSuffix}`, label: "Todos" }]
+            : []
+        }
       />
     </AppShell>
   );
