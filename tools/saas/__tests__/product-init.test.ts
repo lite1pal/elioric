@@ -51,6 +51,11 @@ describe("saas product init", () => {
         resource: {
           api: { prefix: string };
           resource: string;
+          workflow?: {
+            field: string;
+            initial: string;
+            transitions: Record<string, string[]>;
+          };
           ui: {
             createPage: boolean;
             detailPage: boolean;
@@ -73,6 +78,14 @@ describe("saas product init", () => {
           prefix: "/v1/organizations/:organizationId/todos"
         },
         resource: "todo",
+        workflow: {
+          field: "status",
+          initial: "todo",
+          transitions: {
+            todo: ["done"],
+            done: []
+          }
+        },
         ui: {
           createPage: false,
           detailPage: false,
@@ -120,6 +133,11 @@ describe("saas product init", () => {
             read: { mode: string; ownerField?: string };
             workflow: { mode: string; ownerField?: string };
             write: { mode: string; ownerField?: string };
+          };
+          workflow?: {
+            field: string;
+            initial: string;
+            transitions: Record<string, string[]>;
           };
           relations: Array<{ target: string; targetScope: string }>;
           resource: string;
@@ -175,6 +193,17 @@ describe("saas product init", () => {
       write: {
         mode: "ownership-aware",
         ownerField: "ownerId"
+      }
+    });
+    expect(writtenSpec.resources[2]?.resource.workflow).toEqual({
+      field: "stage",
+      initial: "lead",
+      transitions: {
+        lead: ["qualified", "lost"],
+        qualified: ["proposal", "lost"],
+        proposal: ["won", "lost"],
+        won: [],
+        lost: []
       }
     });
   });

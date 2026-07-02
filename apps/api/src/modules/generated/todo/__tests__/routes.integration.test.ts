@@ -228,6 +228,55 @@ describe("todo generated resource integration", () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({ error: "forbidden" });
   });
+
+  it("rejects todo workflow transitions that are not declared", async () => {
+    const session = await createSessionMember();
+    const createResponse = await app.inject({
+      method: "POST",
+      headers: {
+        cookie: session.cookie
+      },
+      payload: {
+        title: "title value",
+        status: "todo"
+      },
+      url: `${API_VERSION_PREFIX}/organizations/${session.organizationId}/todos`
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+
+    const createdId = createResponse.json().id as string;
+
+    const firstUpdateResponse = await app.inject({
+      method: "PATCH",
+      headers: {
+        cookie: session.cookie
+      },
+      payload: {
+        status: "done"
+      },
+      url: `${API_VERSION_PREFIX}/organizations/${session.organizationId}/todos/${createdId}`
+    });
+
+    expect(firstUpdateResponse.statusCode).toBe(200);
+
+    const invalidUpdateResponse = await app.inject({
+      method: "PATCH",
+      headers: {
+        cookie: session.cookie
+      },
+      payload: {
+        status: "todo"
+      },
+      url: `${API_VERSION_PREFIX}/organizations/${session.organizationId}/todos/${createdId}`
+    });
+
+    expect(invalidUpdateResponse.statusCode).toBe(400);
+    expect(invalidUpdateResponse.json()).toEqual({
+      error: "Cannot move status from done to todo."
+    });
+  });
+
   async function truncateAll() {
     await pool.query(`
       TRUNCATE TABLE

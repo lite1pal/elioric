@@ -433,6 +433,7 @@ function renderDomainIndex(context: ReturnType<typeof createTemplateContext>) {
   const updateShape = context.updateFields
     .map((field) => `  ${field.name}: ${renderZodOptionalField(field)}`)
     .join(",\n");
+  const workflowLines = renderWorkflowDomainContract(context);
 
   return [
     'import { z } from "zod";',
@@ -459,6 +460,7 @@ function renderDomainIndex(context: ReturnType<typeof createTemplateContext>) {
     `export const update${context.pascalName}InputSchema = z.object({`,
     updateShape,
     "});",
+    ...workflowLines,
     "",
     `export const list${context.pluralPascalName}InputSchema = z.object({`,
     isArchiveEnabled(context)
@@ -470,6 +472,7 @@ function renderDomainIndex(context: ReturnType<typeof createTemplateContext>) {
     "});",
     "",
     `export type ${context.pascalName}Record = z.infer<typeof ${context.resource.resource}RecordSchema>;`,
+    ...renderWorkflowDomainTypes(context),
     `export type Create${context.pascalName}Input = z.infer<typeof create${context.pascalName}InputSchema>;`,
     `export type Update${context.pascalName}Input = z.infer<typeof update${context.pascalName}InputSchema>;`,
     `export type List${context.pluralPascalName}Input = z.infer<typeof list${context.pluralPascalName}InputSchema>;`
@@ -549,6 +552,63 @@ function renderDbSchema(context: ReturnType<typeof createTemplateContext>) {
   ].join("\n");
 }
 
+function renderWorkflowDomainContract(
+  context: ReturnType<typeof createTemplateContext>
+) {
+  if (!context.resource.workflow) {
+    return [] as string[];
+  }
+
+  const workflow = context.resource.workflow;
+  const values = getWorkflowFieldValues(context).map((value) => JSON.stringify(value));
+  const transitions = JSON.stringify(workflow.transitions, null, 2)
+    .split("\n")
+    .map((line) => line)
+    .join("\n");
+  const stateTypeName = `${context.pascalName}WorkflowState`;
+
+  return [
+    `export const ${context.resource.resource}WorkflowStateSchema = z.enum([${values.join(", ")}]);`,
+    "",
+    `export const ${context.resource.resource}Workflow = {`,
+    `  field: ${JSON.stringify(workflow.field)},`,
+    `  initial: ${JSON.stringify(workflow.initial)},`,
+    `  transitions: ${transitions}`,
+    `} as const;`,
+    "",
+    `export function assert${context.pascalName}WorkflowCreateState(state: ${stateTypeName}) {`,
+    `  if (state !== ${context.resource.resource}Workflow.initial) {`,
+    `    throw new Error(\`invalid_workflow_transition:New ${context.label} records must start in \${${context.resource.resource}Workflow.initial}.\`);`,
+    "  }",
+    "}",
+    "",
+    `export function assert${context.pascalName}WorkflowTransition(input: {`,
+    `  from: ${stateTypeName};`,
+    `  to: ${stateTypeName};`,
+    "}) {",
+    "  if (input.from === input.to) {",
+    "    return;",
+    "  }",
+    "",
+    `  const allowedTransitions = ${context.resource.resource}Workflow.transitions[input.from] ?? [];`,
+    "",
+    "  if (!allowedTransitions.includes(input.to)) {",
+    `    throw new Error(\`invalid_workflow_transition:Cannot move ${workflow.field} from \${input.from} to \${input.to}.\`);`,
+    "  }",
+    "}"
+  ];
+}
+
+function renderWorkflowDomainTypes(context: ReturnType<typeof createTemplateContext>) {
+  if (!context.resource.workflow) {
+    return [] as string[];
+  }
+
+  return [
+    `export type ${context.pascalName}WorkflowState = z.infer<typeof ${context.resource.resource}WorkflowStateSchema>;`
+  ];
+}
+
 function renderApiRepo(context: ReturnType<typeof createTemplateContext>) {
   return [
     `import type { Create${context.pascalName}Input, ${context.pascalName}Record, List${context.pluralPascalName}Input, Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
@@ -574,8 +634,38 @@ function renderApiRepo(context: ReturnType<typeof createTemplateContext>) {
 }
 
 function renderApiService(context: ReturnType<typeof createTemplateContext>) {
+  const workflowImports = context.resource.workflow
+    ? `, assert${context.pascalName}WorkflowCreateState, assert${context.pascalName}WorkflowTransition`
+    : "";
+  const workflowCreateValidation = context.resource.workflow
+    ? [
+        `      assert${context.pascalName}WorkflowCreateState(data.${context.resource.workflow.field});`
+      ].join("\n")
+    : "";
+  const workflowUpdateValidation = context.resource.workflow
+    ? [
+        "      const current = await repo.findById({",
+        "        id: input.id,",
+        "        organizationId: input.organizationId",
+        "      });",
+        "",
+        "      if (!current) {",
+        "        return undefined;",
+        "      }",
+        "",
+        `      const nextWorkflowState = data.${context.resource.workflow.field};`,
+        "",
+        "      if (nextWorkflowState !== undefined) {",
+        `        assert${context.pascalName}WorkflowTransition({`,
+        `          from: current.${context.resource.workflow.field},`,
+        "          to: nextWorkflowState",
+        "        });",
+        "      }"
+      ].join("\n")
+    : "";
+
   return [
-    `import { create${context.pascalName}InputSchema, list${context.pluralPascalName}InputSchema, update${context.pascalName}InputSchema, type Create${context.pascalName}Input, type Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
+    `import { create${context.pascalName}InputSchema, list${context.pluralPascalName}InputSchema, update${context.pascalName}InputSchema${workflowImports}, type Create${context.pascalName}Input, type Update${context.pascalName}Input } from "@auditrail/domain/generated/${context.resourcePath}";`,
     "",
     `import type { ${context.pascalName}Repo } from "./repo.js";`,
     "",
@@ -585,8 +675,10 @@ function renderApiService(context: ReturnType<typeof createTemplateContext>) {
       ? "    async archive(input: { id: string; organizationId: string }) {\n      return repo.archive(input);\n    },"
       : "",
     "    async create(input: { data: Create" + context.pascalName + "Input; organizationId: string }) {",
+    "      const data = create" + context.pascalName + "InputSchema.parse(input.data);",
+    workflowCreateValidation,
     "      return repo.create({",
-    "        data: create" + context.pascalName + "InputSchema.parse(input.data),",
+    "        data,",
     "        organizationId: input.organizationId",
     "      });",
     "    },",
@@ -611,8 +703,10 @@ function renderApiService(context: ReturnType<typeof createTemplateContext>) {
       ? "    async unarchive(input: { id: string; organizationId: string }) {\n      return repo.unarchive(input);\n    },"
       : "",
     "    async update(input: { data: Update" + context.pascalName + "Input; id: string; organizationId: string }) {",
+    "      const data = update" + context.pascalName + "InputSchema.parse(input.data);",
+    workflowUpdateValidation,
     "      return repo.update({",
-    "        data: update" + context.pascalName + "InputSchema.parse(input.data),",
+    "        data,",
     "        id: input.id,",
     "        organizationId: input.organizationId",
     "      });",
@@ -1171,6 +1265,12 @@ function renderApiRoutes(context: ReturnType<typeof createTemplateContext>) {
     "function mapGeneratedResourceAccessError(reply: FastifyReply, error: unknown) {",
     '  if (error instanceof Error && error.message === "forbidden") {',
     '    return reply.code(403).send({ error: "forbidden" });',
+    "  }",
+    "",
+    '  if (error instanceof Error && error.message.startsWith("invalid_workflow_transition:")) {',
+    "    return reply.code(400).send({",
+    '      error: error.message.slice("invalid_workflow_transition:".length)',
+    "    });",
     "  }",
     "",
     "  throw error;",
@@ -2475,6 +2575,14 @@ function isArchiveEnabled(context: ReturnType<typeof createTemplateContext>) {
 
 function getArchiveFieldName(context: ReturnType<typeof createTemplateContext>) {
   return context.resource.archive.field ?? "archivedAt";
+}
+
+function getWorkflowFieldValues(context: ReturnType<typeof createTemplateContext>) {
+  const workflowField = context.resource.fields.find(
+    (field) => field.name === context.resource.workflow?.field
+  );
+
+  return workflowField?.values ?? [];
 }
 
 function formatGeneratedResourcePolicyRule(

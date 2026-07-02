@@ -4,36 +4,6 @@ This file tracks task-system and agent-workflow work items.
 
 ## Queue
 
-- [ ] T-120 Add generated workflow and state-transition support
-  status: ready
-  priority: high
-  owner: codex
-  branch:
-  pr:
-  last_updated: 2026-07-02
-  completed:
-  blocked_reason:
-  notes:
-    - 2026-07-02: PM and CRM resources such as tasks or deals need more than free-form enum updates; they need bounded state transitions
-    - 2026-07-02: this task should keep the transition model declarative in specs and generate validation, actions, and user feedback from that source
-  files:
-    - tools/saas/*
-    - apps/api/src/modules/generated/*
-    - apps/web/app/*
-    - apps/web/src/features/*
-    - packages/domain/src/generated/*
-    - README.md
-    - docs/02-architecture.md
-    - docs/03-api.md
-    - docs/04-quality-gates.md
-    - docs/05-next-steps.md
-    - docs/07-change-log.md
-    - tasks/workflow.txt
-  acceptance:
-    - Resource or product specs can declare supported workflow states and transitions for the bounded generated slice
-    - Generated API and product pages enforce transitions instead of treating all status changes as arbitrary patch operations
-    - One generated proof resource exercises allowed and rejected transitions with user-facing feedback
-
 - [ ] T-121 Add generated filter, sort, and pagination primitives for product resources
   status: ready
   priority: high
@@ -283,6 +253,37 @@ This file tracks task-system and agent-workflow work items.
     - The first proof product can render a real workspace page for a generated todo resource instead of placeholder-only UI
 
 ## Done
+
+- [x] T-120 Add generated workflow and state-transition support
+  status: done
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed: 2026-07-02
+  blocked_reason:
+  notes:
+    - 2026-07-02: PM and CRM resources such as tasks or deals need more than free-form enum updates; they need bounded state transitions
+    - 2026-07-02: this task should keep the transition model declarative in specs and generate validation, actions, and user feedback from that source
+    - 2026-07-02: framework resource specs now support one enum-backed workflow field with an initial state plus explicit transitions, generated domain packages emit workflow helpers, generated API services reject invalid transitions before repo writes, and the committed todo product now proves rejected transitions through user-facing feedback
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/generated/*
+    - apps/web/app/*
+    - apps/web/src/features/*
+    - packages/domain/src/generated/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/05-next-steps.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Resource or product specs can declare supported workflow states and transitions for the bounded generated slice
+    - Generated API and product pages enforce transitions instead of treating all status changes as arbitrary patch operations
+    - One generated proof resource exercises allowed and rejected transitions with user-facing feedback
 
 - [x] T-119 Add product-level authorization and policy hooks for generated products
   status: done

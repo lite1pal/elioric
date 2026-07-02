@@ -33,6 +33,43 @@ export const updateTodoInputSchema = z.object({
   dueAt: z.string().datetime().optional()
 });
 
+export const todoWorkflowStateSchema = z.enum(["todo", "done"]);
+
+export const todoWorkflow = {
+  field: "status",
+  initial: "todo",
+  transitions: {
+    todo: ["done"],
+    done: []
+  }
+} as const;
+
+export function assertTodoWorkflowCreateState(state: TodoWorkflowState) {
+  if (state !== todoWorkflow.initial) {
+    throw new Error(
+      `invalid_workflow_transition:New Todo records must start in ${todoWorkflow.initial}.`
+    );
+  }
+}
+
+export function assertTodoWorkflowTransition(input: {
+  from: TodoWorkflowState;
+  to: TodoWorkflowState;
+}) {
+  if (input.from === input.to) {
+    return;
+  }
+
+  const allowedTransitions =
+    todoWorkflow.transitions[input.from] as readonly TodoWorkflowState[] | undefined;
+
+  if (!allowedTransitions?.includes(input.to)) {
+    throw new Error(
+      `invalid_workflow_transition:Cannot move ${todoWorkflow.field} from ${input.from} to ${input.to}.`
+    );
+  }
+}
+
 export const listTodosInputSchema = z.object({
   archived: z.enum(["exclude", "include", "only"]).optional(),
   cursor: z.string().uuid().optional(),
@@ -41,6 +78,7 @@ export const listTodosInputSchema = z.object({
 });
 
 export type TodoRecord = z.infer<typeof todoRecordSchema>;
+export type TodoWorkflowState = z.infer<typeof todoWorkflowStateSchema>;
 export type CreateTodoInput = z.infer<typeof createTodoInputSchema>;
 export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
 export type ListTodosInput = z.infer<typeof listTodosInputSchema>;

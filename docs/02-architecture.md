@@ -162,6 +162,11 @@ for simple resource-backed products:
   `read`, `write`, `archive`, and future `workflow` actions can stay on the
   default organization-role contract or opt into ownership-aware member checks
   without hand-editing platform bootstrap code
+- generated resources may now also declare one bounded workflow seam on an
+  enum field. The generated domain package emits transition helpers, the
+  generated API service validates create and update transitions before repo
+  writes, and generated product pages surface rejected transitions through the
+  existing feedback redirect path
 
 Current product-generation limits are explicit:
 
@@ -169,7 +174,8 @@ Current product-generation limits are explicit:
 - no arbitrary product-specific runtime logic or full relation-aware dashboards yet
 - the current supported templates are still bounded to generated CRUD-oriented
   business products; record-level policy hooks are now generator-owned, but
-  richer workflow or state-machine rules still remain manual
+  only one enum-backed workflow field is supported today, while richer
+  workflow or state-machine rules still remain manual
 
 The rule is strict: `platform-*` code must not depend on `audit-product` code.
 Audit-specific modules may depend on platform modules, but never the reverse.

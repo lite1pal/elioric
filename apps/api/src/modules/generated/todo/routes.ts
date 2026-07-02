@@ -296,5 +296,14 @@ function mapGeneratedResourceAccessError(reply: FastifyReply, error: unknown) {
     return reply.code(403).send({ error: "forbidden" });
   }
 
+  if (
+    error instanceof Error &&
+    error.message.startsWith("invalid_workflow_transition:")
+  ) {
+    return reply.code(400).send({
+      error: error.message.slice("invalid_workflow_transition:".length)
+    });
+  }
+
   throw error;
 }

@@ -208,6 +208,9 @@ The current product-generation slice is intentionally narrow:
   `read`, `write`, `archive`, and future `workflow` actions; defaults remain
   organization-role based, while the CRM `deal` template now proves the
   stricter ownership-aware path through its generated `ownerId` relation
+- generated resources can now declare bounded workflow transitions on one enum
+  field; the todo proof enforces `todo -> done` while the CRM `deal` template
+  now emits a generated stage progression contract
 - the committed proof now covers generated product install, test migration,
   generated web page load, generated server-action
   create/update/archive/unarchive, generated validation feedback with

@@ -651,6 +651,14 @@ export const frameworkResourcePolicySpecSchema = z
   })
   .strict();
 
+export const frameworkResourceWorkflowSpecSchema = z
+  .object({
+    field: frameworkFieldNameSchema,
+    initial: nonEmptyStringSchema,
+    transitions: z.record(nonEmptyStringSchema, z.array(nonEmptyStringSchema))
+  })
+  .strict();
+
 export const frameworkResourceIndexSpecSchema = z
   .object({
     fields: z.array(frameworkFieldNameSchema).min(1),
@@ -719,6 +727,7 @@ export const frameworkResourceSpecInputSchema = z
         "resource names must be lower camelCase or lowercase kebab-case"
       ),
     timestamps: z.union([z.boolean(), frameworkResourceTimestampsSpecSchema]).optional(),
+    workflow: frameworkResourceWorkflowSpecSchema.optional(),
     ui: frameworkResourceUiSpecSchema.optional()
   })
   .strict()
@@ -819,6 +828,12 @@ export const frameworkResourceSpecInputSchema = z
         });
       }
     }
+
+    validateWorkflowSpec({
+      availableFields: value.fields,
+      context,
+      workflow: value.workflow
+    });
   });
 
 export type FrameworkResourceFieldSpec = z.infer<
@@ -837,6 +852,9 @@ export type FrameworkResourceApiSpec = z.infer<typeof frameworkResourceApiSpecSc
 export type FrameworkResourceUiSpec = z.infer<typeof frameworkResourceUiSpecSchema>;
 export type FrameworkResourcePermissionsSpec = z.infer<
   typeof frameworkResourcePermissionsSpecSchema
+>;
+export type FrameworkResourceWorkflowSpec = z.infer<
+  typeof frameworkResourceWorkflowSpecSchema
 >;
 export type FrameworkResourceIndexSpec = z.infer<
   typeof frameworkResourceIndexSpecSchema
@@ -1000,6 +1018,14 @@ const normalizedFrameworkResourcePolicySpecSchema = z
   })
   .strict();
 
+const normalizedFrameworkResourceWorkflowSpecSchema = z
+  .object({
+    field: frameworkFieldNameSchema,
+    initial: nonEmptyStringSchema,
+    transitions: z.record(nonEmptyStringSchema, z.array(nonEmptyStringSchema))
+  })
+  .strict();
+
 const normalizedFrameworkResourceTimestampsSpecSchema = z
   .object({
     createdAtField: frameworkFieldNameSchema.optional(),
@@ -1067,6 +1093,7 @@ export const normalizedFrameworkResourceSpecSchema = z
         "resource names must be lower camelCase or lowercase kebab-case"
       ),
     timestamps: normalizedFrameworkResourceTimestampsSpecSchema,
+    workflow: normalizedFrameworkResourceWorkflowSpecSchema.optional(),
     ui: normalizedFrameworkResourceUiSpecSchema
   })
   .strict()
@@ -1156,6 +1183,12 @@ export const normalizedFrameworkResourceSpecSchema = z
         });
       }
     }
+
+    validateWorkflowSpec({
+      availableFields: value.fields,
+      context,
+      workflow: value.workflow
+    });
   });
 
 export type FrameworkResourceSpec = z.infer<
@@ -1239,6 +1272,7 @@ export function normalizeFrameworkResourceSpec(
     relations,
     resource: input.resource,
     timestamps: normalizeTimestamps(input.timestamps),
+    workflow: input.workflow,
     ui
   });
 }
@@ -1324,7 +1358,12 @@ function normalizePolicy(
 }
 
 function normalizePolicyRule(
-  rule: FrameworkResourcePolicyRuleSpec | undefined
+  rule:
+    | {
+        mode?: FrameworkResourcePolicyMode;
+        ownerField?: string;
+      }
+    | undefined
 ): FrameworkResourcePolicyRuleSpec {
   if (!rule) {
     return {
@@ -1336,6 +1375,72 @@ function normalizePolicyRule(
     mode: rule.mode ?? "organization-role",
     ownerField: rule.ownerField
   };
+}
+
+function validateWorkflowSpec(input: {
+  availableFields: ReadonlyArray<{
+    name: string;
+    type: FrameworkFieldType;
+    values?: readonly string[];
+  }>;
+  context: z.RefinementCtx;
+  workflow: FrameworkResourceWorkflowSpec | undefined;
+}) {
+  if (!input.workflow) {
+    return;
+  }
+
+  const workflowField = input.availableFields.find(
+    (field) => field.name === input.workflow?.field
+  );
+
+  if (!workflowField) {
+    input.context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `workflow field ${input.workflow.field} references an unknown field`,
+      path: ["workflow", "field"]
+    });
+    return;
+  }
+
+  if (workflowField.type !== "enum" || !workflowField.values) {
+    input.context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "workflow field must target an enum field",
+      path: ["workflow", "field"]
+    });
+    return;
+  }
+
+  const allowedStates = new Set(workflowField.values);
+
+  if (!allowedStates.has(input.workflow.initial)) {
+    input.context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `workflow initial state ${input.workflow.initial} must be one of the enum values`,
+      path: ["workflow", "initial"]
+    });
+  }
+
+  for (const [fromState, toStates] of Object.entries(input.workflow.transitions)) {
+    if (!allowedStates.has(fromState)) {
+      input.context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `workflow transition key ${fromState} must be one of the enum values`,
+        path: ["workflow", "transitions", fromState]
+      });
+    }
+
+    for (const toState of toStates) {
+      if (!allowedStates.has(toState)) {
+        input.context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `workflow target state ${toState} must be one of the enum values`,
+          path: ["workflow", "transitions", fromState]
+        });
+      }
+    }
+  }
 }
 
 function isReservedResourceName(resourceName: string) {

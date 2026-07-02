@@ -202,6 +202,10 @@ archive contract for product-owned resources:
 - generated record routes now evaluate a generator-owned policy hook before
   returning or mutating a loaded record; supported actions are `read`,
   `write`, `archive`, and the reserved future `workflow` seam
+- generated resources may also declare a workflow contract for one enum field.
+  When present, create or update requests that violate the generated
+  transition map now return `400` with a user-facing error message such as
+  `Cannot move status from done to todo.`
 
 The first explicit non-AuditTrail proof route is:
 

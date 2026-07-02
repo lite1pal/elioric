@@ -63,7 +63,7 @@ export function createWorkspaceAccessService(
         userId: input.userId
       });
 
-      assertRole(membership, getAllowedRolesForResourceAction(input.action));
+      assertRole(membership, [...getAllowedRolesForResourceAction(input.action)]);
 
       if (
         input.policy.mode === "ownership-aware" &&

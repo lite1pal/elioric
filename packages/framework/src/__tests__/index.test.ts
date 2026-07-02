@@ -370,6 +370,71 @@ describe("framework contracts", () => {
     ).toThrow(/policy ownerField references unknown field ownerId/i);
   });
 
+  it("normalizes resource workflow declarations", () => {
+    expect(
+      normalizeFrameworkResourceSpec({
+        fields: [
+          {
+            default: "todo",
+            name: "status",
+            required: true,
+            type: "enum",
+            values: ["todo", "done"]
+          },
+          {
+            name: "title",
+            required: true,
+            type: "string"
+          }
+        ],
+        label: "Todo",
+        ownership: "organization",
+        resource: "todo",
+        workflow: {
+          field: "status",
+          initial: "todo",
+          transitions: {
+            todo: ["done"],
+            done: []
+          }
+        }
+      })
+    ).toMatchObject({
+      workflow: {
+        field: "status",
+        initial: "todo",
+        transitions: {
+          todo: ["done"],
+          done: []
+        }
+      }
+    });
+  });
+
+  it("rejects workflow declarations that target non-enum fields", () => {
+    expect(() =>
+      frameworkResourceSpecSchema.parse({
+        fields: [
+          {
+            name: "status",
+            required: true,
+            type: "string"
+          }
+        ],
+        label: "Todo",
+        ownership: "organization",
+        resource: "todo",
+        workflow: {
+          field: "status",
+          initial: "todo",
+          transitions: {
+            todo: []
+          }
+        }
+      })
+    ).toThrow(/workflow field must target an enum field/i);
+  });
+
   it("rejects relations that shadow explicit fields", () => {
     expect(() =>
       frameworkResourceSpecSchema.parse({

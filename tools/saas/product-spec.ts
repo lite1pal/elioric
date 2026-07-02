@@ -210,6 +210,14 @@ function normalizeTodoResource(productId: string): FrameworkResourceSpec {
       enabled: true,
       updatedAtField: "updatedAt"
     },
+    workflow: {
+      field: "status",
+      initial: "todo",
+      transitions: {
+        todo: ["done"],
+        done: []
+      }
+    },
     ui: {
       createPage: false,
       detailPage: false,
@@ -328,6 +336,17 @@ function createCrmResources(productId: string): FrameworkResourceSpec[] {
           ownerField: "ownerId"
         }
       },
+      workflow: {
+        field: "stage",
+        initial: "lead",
+        transitions: {
+          lead: ["qualified", "lost"],
+          qualified: ["proposal", "lost"],
+          proposal: ["won", "lost"],
+          won: [],
+          lost: []
+        }
+      },
       relations: [
         {
           kind: "belongs-to",
@@ -376,6 +395,7 @@ function normalizeProductResource(input: {
   policy?: FrameworkResourceSpec["policy"];
   relations?: NonNullable<FrameworkResourceSpec["relations"]>;
   resourceId: string;
+  workflow?: FrameworkResourceSpec["workflow"];
 }) {
   const pluralPath = pluralizePathSegment(toKebabCase(input.resourceId));
 
@@ -410,6 +430,7 @@ function normalizeProductResource(input: {
       enabled: true,
       updatedAtField: "updatedAt"
     },
+    workflow: input.workflow,
     ui: {
       createPage: false,
       detailPage: false,

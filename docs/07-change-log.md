@@ -2,6 +2,14 @@
 
 ## 2026-07-02
 
+- Completed T-120 by adding generated workflow and state-transition support.
+  Framework resource specs can now declare one enum-backed workflow field with
+  an initial state plus explicit transitions, generated domain packages now
+  emit transition helpers, generated API services now reject invalid create or
+  update transitions before repo writes, and the committed todo proof now
+  exercises both an allowed `todo -> done` move and a rejected `done -> todo`
+  path with user-facing feedback.
+
 - Completed T-119 by adding generator-owned product policy hooks for record
   actions. Framework resource specs now normalize bounded `read`, `write`,
   `archive`, and future `workflow` policy declarations, generated routes now

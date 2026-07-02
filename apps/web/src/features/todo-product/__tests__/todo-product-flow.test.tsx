@@ -130,12 +130,18 @@ vi.mock("@/src/features/todo/api/todo-client", () => ({
       if (!existing) {
         throw new Error("missing_todo");
       }
+      const nextStatus = body.status === "done" ? "done" : "todo";
+
+      if (existing.status === "done" && nextStatus === "todo") {
+        throw new Error("Cannot move status from done to todo.");
+      }
+
       const nextRecord: TodoRecord = {
         ...existing,
         details:
           typeof body.details === "string" ? body.details : undefined,
         dueAt: typeof body.dueAt === "string" ? body.dueAt : undefined,
-        status: body.status === "done" ? "done" : "todo",
+        status: nextStatus,
         title: String(body.title),
         updatedAt: "2026-07-01T10:00:00.000Z"
       };
@@ -290,6 +296,51 @@ describe("generated todo product flow", () => {
         title: "Ship generated detail flow"
       })
     ]);
+
+    redirectMock.mockReset();
+
+    const invalidTransitionFormData = new FormData();
+    invalidTransitionFormData.set("todoId", "todo-1");
+    invalidTransitionFormData.set("organizationId", "org-1");
+    invalidTransitionFormData.set("projectId", "project-1");
+    invalidTransitionFormData.set("title", "Ship generated detail flow");
+    invalidTransitionFormData.set("details", "Detail and edit now come from generated product routes");
+    invalidTransitionFormData.set("status", "todo");
+    invalidTransitionFormData.set("dueAt", "2026-07-01T14:45");
+
+    await updateTodoWorkspaceAction(invalidTransitionFormData);
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/todo/todos/todo-1/edit?organizationId=org-1&projectId=project-1&archived=exclude&feedback=Cannot+move+status+from+done+to+todo.&draft_title=Ship+generated+detail+flow&draft_details=Detail+and+edit+now+come+from+generated+product+routes&draft_status=todo&draft_dueAt=2026-07-01T14%3A45"
+    );
+
+    const invalidTransitionDetailPage = await loadTodoWorkspaceDetailPage(
+      {
+        searchParams: {
+          draft_details:
+            "Detail and edit now come from generated product routes",
+          draft_dueAt: "2026-07-01T14:45",
+          draft_status: "todo",
+          draft_title: "Ship generated detail flow",
+          feedback: "Cannot move status from done to todo.",
+          organizationId: "org-1",
+          projectId: "project-1"
+        },
+        todoId: "todo-1"
+      },
+      {
+        currentUser
+      }
+    );
+
+    expect(invalidTransitionDetailPage.feedback).toBe(
+      "Cannot move status from done to todo."
+    );
+    expect(invalidTransitionDetailPage.item).toEqual(
+      expect.objectContaining({
+        status: "done"
+      })
+    );
 
     redirectMock.mockReset();
 

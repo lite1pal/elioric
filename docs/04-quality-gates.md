@@ -71,6 +71,11 @@ Generated product policy hooks now live in the same lane too: framework-spec
 tests must prove policy normalization and validation, generated route tests
 must prove record-access failures map correctly, and product template tests
 must prove stricter ownership-aware defaults for the bounded CRM slice.
+Generated workflow hooks now join that gate: framework-spec tests must prove
+workflow normalization and enum-field validation, generated todo service plus
+route integration tests must prove rejected transitions return a `400`, and
+the generated todo product flow must prove that rejected transitions surface a
+user-facing feedback message without mutating the record.
 Archive-enabled generated resources now also need migration coverage in the
 real test database, because schema-only generator changes are not complete
 until the committed proof still passes against Postgres after

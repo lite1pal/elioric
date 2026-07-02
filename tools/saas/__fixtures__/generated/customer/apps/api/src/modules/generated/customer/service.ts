@@ -3,8 +3,9 @@ import type { CustomerRepo } from "./repo.js";
 export function createCustomerService(repo: CustomerRepo) {
   return {
     async create(input: { data: CreateCustomerInput; organizationId: string }) {
+      const data = createCustomerInputSchema.parse(input.data);
       return repo.create({
-        data: createCustomerInputSchema.parse(input.data),
+        data,
         organizationId: input.organizationId
       });
     },
@@ -22,8 +23,9 @@ export function createCustomerService(repo: CustomerRepo) {
       });
     },
     async update(input: { data: UpdateCustomerInput; id: string; organizationId: string }) {
+      const data = updateCustomerInputSchema.parse(input.data);
       return repo.update({
-        data: updateCustomerInputSchema.parse(input.data),
+        data,
         id: input.id,
         organizationId: input.organizationId
       });
