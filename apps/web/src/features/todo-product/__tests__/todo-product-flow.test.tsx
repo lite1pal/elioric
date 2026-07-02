@@ -424,6 +424,48 @@ describe("generated todo product flow", () => {
     ]);
   });
 
+  it("renders a no-workspace state and blocks create redirects when no todo workspace is enabled", async () => {
+    const currentUser = createCurrentUser({
+      includeTodoProduct: false
+    });
+
+    const pageData = await loadTodoWorkspacePage({}, { currentUser });
+
+    expect(pageData.workspace.activeOrganizationId).toBeUndefined();
+    expect(pageData.items).toEqual([]);
+
+    requireCurrentUserMock.mockResolvedValue(currentUser);
+
+    render(
+      await ResourcePage({
+        searchParams: Promise.resolve({})
+      })
+    );
+
+    expect(
+      screen.getByText(
+        "No workspace with the Todo product is enabled for this account yet."
+      )
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Create Todo" })
+    ).toBeNull();
+
+    redirectMock.mockReset();
+
+    const formData = new FormData();
+    formData.set("title", "Clean up at home");
+    formData.set("details", "you know");
+    formData.set("status", "todo");
+    formData.set("dueAt", "2026-07-03T10:00");
+
+    await createTodoWorkspaceAction(formData);
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/todo/todos?archived=exclude&feedback=Enable+the+Todo+product+for+a+workspace+before+creating+todos.&draft_title=Clean+up+at+home&draft_details=you+know&draft_status=todo&draft_dueAt=2026-07-03T10%3A00"
+    );
+  });
+
   it("renders the generated todo list, detail, and edit pages with feedback and destructive actions visible", async () => {
     records.splice(0, records.length, {
       createdAt: "2026-07-01T09:00:00.000Z",
@@ -505,15 +547,21 @@ describe("generated todo product flow", () => {
   });
 });
 
-function createCurrentUser(): CurrentUserResponse {
+function createCurrentUser(input?: {
+  includeTodoProduct?: boolean;
+}): CurrentUserResponse {
   return {
     memberships: [
       {
         installedProducts: [
-          {
-            enabled: true,
-            productId: "todo"
-          }
+          ...(input?.includeTodoProduct === false
+            ? []
+            : [
+                {
+                  enabled: true,
+                  productId: "todo" as const
+                }
+              ])
         ],
         onboarding: {
           completedRequiredSteps: 0,

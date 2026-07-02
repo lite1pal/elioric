@@ -89,6 +89,16 @@ export async function createTodoWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath("/todo/todos", "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the Todo product for a workspace before creating todos."
+      }) as never
+    );
+  }
+
   try {
     const payload = createTodoInputSchema.parse({
       title: String(formData.get("title") ?? ""),
@@ -280,7 +290,10 @@ function buildWorkspaceSuffix(
     includeCursor?: boolean;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
   if (projectId) {
     search.set("projectId", projectId);
   }
@@ -328,7 +341,10 @@ function buildFailurePath(
     fieldErrors?: TodoFormFieldErrors;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
   if (projectId) {
     search.set("projectId", projectId);
   }
