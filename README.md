@@ -204,6 +204,10 @@ The current product-generation slice is intentionally narrow:
   not a full PM product yet
 - the CRM template provides a bounded second business-product family with
   generated `company`, `contact`, `deal`, and `note` resources
+- generated products can now declare bounded record-level policy hooks for
+  `read`, `write`, `archive`, and future `workflow` actions; defaults remain
+  organization-role based, while the CRM `deal` template now proves the
+  stricter ownership-aware path through its generated `ownerId` relation
 - the committed proof now covers generated product install, test migration,
   generated web page load, generated server-action
   create/update/archive/unarchive, generated validation feedback with

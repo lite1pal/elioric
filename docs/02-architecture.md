@@ -158,14 +158,18 @@ for simple resource-backed products:
   action seams for create, detail, edit, archive, restore, archived-filter
   list views, and validation-feedback redirects in addition to the installed
   generated API module and migration
+- generated record routes now flow through a bounded policy seam:
+  `read`, `write`, `archive`, and future `workflow` actions can stay on the
+  default organization-role contract or opt into ownership-aware member checks
+  without hand-editing platform bootstrap code
 
 Current product-generation limits are explicit:
 
 - no custom product API route generation yet
 - no arbitrary product-specific runtime logic or full relation-aware dashboards yet
 - the current supported templates are still bounded to generated CRUD-oriented
-  business products, but archive flows are now generator-owned while richer
-  product-specific policies still remain manual
+  business products; record-level policy hooks are now generator-owned, but
+  richer workflow or state-machine rules still remain manual
 
 The rule is strict: `platform-*` code must not depend on `audit-product` code.
 Audit-specific modules may depend on platform modules, but never the reverse.

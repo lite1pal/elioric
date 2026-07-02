@@ -88,6 +88,9 @@ describe("saas product install", () => {
     expect(
       readGenerated(repoRoot, "apps/api/src/modules/generated/todo/routes.ts")
     ).toContain('app.post("/v1/organizations/:organizationId/todos/:id/archive"');
+    expect(
+      readGenerated(repoRoot, "apps/api/src/modules/generated/todo/routes.ts")
+    ).toContain("assertResourceAccess");
     expect(readGenerated(repoRoot, "apps/api/src/app.ts")).toContain(
       "registerTodoRoutes"
     );
@@ -178,6 +181,9 @@ describe("saas product install", () => {
     expect(
       readGenerated(repoRoot, "apps/web/app/crm/notes/page.tsx")
     ).toContain("createNoteWorkspaceAction");
+    expect(
+      readGenerated(repoRoot, "apps/api/src/modules/generated/deal/routes.ts")
+    ).toContain('ownerField: "ownerId"');
   });
 });
 

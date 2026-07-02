@@ -310,6 +310,24 @@ function createCrmResources(productId: string): FrameworkResourceSpec[] {
         }
       ],
       label: "Deal",
+      policy: {
+        archive: {
+          mode: "ownership-aware",
+          ownerField: "ownerId"
+        },
+        read: {
+          mode: "ownership-aware",
+          ownerField: "ownerId"
+        },
+        workflow: {
+          mode: "ownership-aware",
+          ownerField: "ownerId"
+        },
+        write: {
+          mode: "ownership-aware",
+          ownerField: "ownerId"
+        }
+      },
       relations: [
         {
           kind: "belongs-to",
@@ -355,6 +373,7 @@ function createCrmResources(productId: string): FrameworkResourceSpec[] {
 function normalizeProductResource(input: {
   fields: NonNullable<FrameworkResourceSpec["fields"]>;
   label: string;
+  policy?: FrameworkResourceSpec["policy"];
   relations?: NonNullable<FrameworkResourceSpec["relations"]>;
   resourceId: string;
 }) {
@@ -381,6 +400,7 @@ function normalizeProductResource(input: {
     fields: input.fields,
     label: input.label,
     ownership: "organization",
+    policy: input.policy,
     permissions: {},
     pluralLabel: pluralizeLabel(input.label),
     relations: input.relations ?? [],

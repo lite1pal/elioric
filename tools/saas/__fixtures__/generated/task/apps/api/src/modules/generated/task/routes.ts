@@ -9,11 +9,30 @@ const resourceIdParamsSchema = z.object({
   organizationId: z.string().uuid()
 });
 type GeneratedResourceAccessRole = "owner" | "admin" | "member" | "viewer";
+type GeneratedResourcePolicyAction = "archive" | "read" | "workflow" | "write";
+type GeneratedResourcePolicyMode = "organization-role" | "ownership-aware";
+interface GeneratedResourcePolicyRule {
+  mode: GeneratedResourcePolicyMode;
+  ownerField?: string;
+}
+const generatedResourcePolicy = {
+  archive: { mode: "organization-role" },
+  read: { mode: "organization-role" },
+  workflow: { mode: "organization-role" },
+  write: { mode: "organization-role" }
+} as const satisfies Record<GeneratedResourcePolicyAction, GeneratedResourcePolicyRule>;
 export interface TaskRoutesOptions {
   access: {
     assertOrganizationAccess(input: {
       allowedRoles: readonly GeneratedResourceAccessRole[];
       organizationId: string;
+      userId: string;
+    }): Promise<void>;
+    assertResourceAccess(input: {
+      action: GeneratedResourcePolicyAction;
+      organizationId: string;
+      policy: GeneratedResourcePolicyRule;
+      resource: Record<string, unknown>;
       userId: string;
     }): Promise<void>;
   };
@@ -85,11 +104,6 @@ export async function registerTaskRoutes(
       return reply.code(400).send({ error: "invalid_request" });
     }
     try {
-      await options.access.assertOrganizationAccess({
-        allowedRoles: ["owner", "admin", "member", "viewer"],
-        organizationId: params.data.organizationId,
-        userId: user.id
-      });
       const resource = await options.service.get({
         id: params.data.id,
         organizationId: params.data.organizationId
@@ -97,6 +111,13 @@ export async function registerTaskRoutes(
       if (!resource) {
         return reply.code(404).send({ error: "not_found" });
       }
+      await options.access.assertResourceAccess({
+        action: "read",
+        organizationId: params.data.organizationId,
+        policy: generatedResourcePolicy.read,
+        resource,
+        userId: user.id
+      });
       return resource;
     } catch (error) {
       return mapGeneratedResourceAccessError(reply, error);
@@ -112,9 +133,18 @@ export async function registerTaskRoutes(
       return reply.code(400).send({ error: "invalid_request" });
     }
     try {
-      await options.access.assertOrganizationAccess({
-        allowedRoles: ["owner", "admin", "member"],
+      const currentResource = await options.service.get({
+        id: params.data.id,
+        organizationId: params.data.organizationId
+      });
+      if (!currentResource) {
+        return reply.code(404).send({ error: "not_found" });
+      }
+      await options.access.assertResourceAccess({
+        action: "write",
         organizationId: params.data.organizationId,
+        policy: generatedResourcePolicy.write,
+        resource: currentResource,
         userId: user.id
       });
       const resource = await options.service.update({

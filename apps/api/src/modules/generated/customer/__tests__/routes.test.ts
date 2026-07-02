@@ -87,12 +87,44 @@ describe("registerCustomerRoutes", () => {
     expect(response.statusCode).toBe(403);
     expect(response.json()).toEqual({ error: "forbidden" });
   });
+
+  it("maps forbidden record access to 403 on detail reads", async () => {
+    const app = buildTestApp(
+      {
+        async get() {
+          return {
+            createdAt: "2026-06-29T00:00:00.000Z",
+            email: "person@example.com",
+            externalId: "11111111-1111-4111-8111-111111111111",
+            id: "22222222-2222-4222-8222-222222222222",
+            isActive: true,
+            lastContactedAt: "2026-06-29T00:00:00.000Z",
+            name: "name value",
+            organizationId: "11111111-1111-4111-8111-111111111111",
+            status: "active",
+            updatedAt: "2026-06-29T00:00:00.000Z"
+          };
+        }
+      },
+      {
+        recordAccessError: new Error("forbidden")
+      }
+    );
+
+    const response = await app.inject({
+      url: "/v1/organizations/11111111-1111-4111-8111-111111111111/customers/22222222-2222-4222-8222-222222222222"
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "forbidden" });
+  });
 });
 
 function buildTestApp(
   overrides: Partial<ReturnType<typeof createCustomerService>>,
   options: {
     accessError?: Error;
+    recordAccessError?: Error;
     session?: boolean;
   } = {}
 ) {
@@ -114,6 +146,11 @@ function buildTestApp(
       async assertOrganizationAccess() {
         if (options.accessError) {
           throw options.accessError;
+        }
+      },
+      async assertResourceAccess() {
+        if (options.recordAccessError) {
+          throw options.recordAccessError;
         }
       }
     },

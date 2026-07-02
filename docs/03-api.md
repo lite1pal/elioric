@@ -199,6 +199,9 @@ archive contract for product-owned resources:
   `POST /api/v1/organizations/:organizationId/<resource>/:id/unarchive`
 - active records omit the archive timestamp field from JSON responses until a
   record is actually archived
+- generated record routes now evaluate a generator-owned policy hook before
+  returning or mutating a loaded record; supported actions are `read`,
+  `write`, `archive`, and the reserved future `workflow` seam
 
 The first explicit non-AuditTrail proof route is:
 

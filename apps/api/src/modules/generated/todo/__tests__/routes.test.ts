@@ -72,8 +72,50 @@ describe("registerTodoRoutes", () => {
     expect(response.json()).toEqual({ error: "forbidden" });
   });
 
+  it("maps forbidden record access to 403 on archive actions", async () => {
+    const app = buildTestApp(
+      {
+        async get() {
+          return {
+            createdAt: "2026-06-29T00:00:00.000Z",
+            details: "details value",
+            dueAt: "2026-06-29T00:00:00.000Z",
+            id: "22222222-2222-4222-8222-222222222222",
+            organizationId: "11111111-1111-4111-8111-111111111111",
+            status: "todo",
+            title: "title value",
+            updatedAt: "2026-06-29T00:00:00.000Z"
+          };
+        }
+      },
+      {
+        recordAccessError: new Error("forbidden")
+      }
+    );
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/organizations/11111111-1111-4111-8111-111111111111/todos/22222222-2222-4222-8222-222222222222/archive"
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "forbidden" });
+  });
+
   it("archives todo records for authorized organization members", async () => {
     const app = buildTestApp({
+      async get() {
+        return {
+          createdAt: "2026-06-29T00:00:00.000Z",
+          details: "details value",
+          dueAt: "2026-06-29T00:00:00.000Z",
+          id: "22222222-2222-4222-8222-222222222222",
+          organizationId: "11111111-1111-4111-8111-111111111111",
+          status: "todo",
+          title: "title value",
+          updatedAt: "2026-06-29T00:00:00.000Z"
+        };
+      },
       async archive(input) {
         expect(input).toEqual({
           id: "22222222-2222-4222-8222-222222222222",
@@ -105,6 +147,19 @@ describe("registerTodoRoutes", () => {
 
   it("unarchives todo records for authorized organization members", async () => {
     const app = buildTestApp({
+      async get() {
+        return {
+          archivedAt: "2026-07-01T00:00:00.000Z",
+          createdAt: "2026-06-29T00:00:00.000Z",
+          details: "details value",
+          dueAt: "2026-06-29T00:00:00.000Z",
+          id: "22222222-2222-4222-8222-222222222222",
+          organizationId: "11111111-1111-4111-8111-111111111111",
+          status: "todo",
+          title: "title value",
+          updatedAt: "2026-07-01T00:00:00.000Z"
+        };
+      },
       async unarchive(input) {
         expect(input).toEqual({
           id: "22222222-2222-4222-8222-222222222222",
@@ -138,6 +193,7 @@ function buildTestApp(
   overrides: Partial<ReturnType<typeof createTodoService>>,
   options: {
     accessError?: Error;
+    recordAccessError?: Error;
     session?: boolean;
   } = {}
 ) {
@@ -157,6 +213,11 @@ function buildTestApp(
       async assertOrganizationAccess() {
         if (options.accessError) {
           throw options.accessError;
+        }
+      },
+      async assertResourceAccess() {
+        if (options.recordAccessError) {
+          throw options.recordAccessError;
         }
       }
     },

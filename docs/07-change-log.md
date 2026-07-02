@@ -2,6 +2,14 @@
 
 ## 2026-07-02
 
+- Completed T-119 by adding generator-owned product policy hooks for record
+  actions. Framework resource specs now normalize bounded `read`, `write`,
+  `archive`, and future `workflow` policy declarations, generated routes now
+  call a platform `assertResourceAccess` seam after loading records, the
+  default contract remains organization-role based, and the CRM `deal`
+  template now proves the stricter ownership-aware path through its generated
+  `ownerId` relation.
+
 - Completed T-118 by adding generator-owned archive lifecycle support for
   product resources. Resource specs can now opt into archive semantics,
   generated DB schemas add a nullable archive timestamp, generated domain/API

@@ -20,3 +20,4 @@ apps/web/blob-report
 !.github/workflows/*.yml
 apps/landing/.github/
 .vscode/
+tmp/

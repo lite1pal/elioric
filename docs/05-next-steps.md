@@ -4,6 +4,12 @@ The immediate Elioric framework roadmap is now:
 
 1. T-119: add product-level authorization and policy hooks for generated
    products so CRM and PM slices can express stronger write or ownership rules
+   Status: done. Generated products can now declare bounded policy hooks for
+   `read`, `write`, `archive`, and future `workflow` actions, with the CRM
+   deal template proving the ownership-aware path.
+1. T-120: add generated workflow and state-transition support so generated
+   products can express bounded stage or status moves through the same policy
+   seam instead of free-form updates
 1. broaden relation-aware product generation beyond the current bounded project
    and product-local target slice so a PM slice can compose task -> project and
    comment -> task without manual page logic
@@ -24,8 +30,9 @@ available and existing-organization product backfill now supported, the next
 meaningful checkpoint after the committed todo end-to-end proof is to deepen that path into a
 believable PM slice instead of a single-resource workspace proof.
 The CRM template now provides the first bounded multi-resource business-product
-family, and archive generation is now in place, so the next leverage moves are
-policy, workflow, and richer query depth rather than more template plumbing.
+family, and archive plus record-policy generation are now in place, so the
+next leverage moves are workflow, query depth, and richer UI behavior rather
+than more template plumbing.
 
 The hosted AuditTrail MVP remains the release gate, but the framework work now
 has a cleaner sequence for deeper multiple-product proof, and the generated

@@ -305,6 +305,71 @@ describe("framework contracts", () => {
     });
   });
 
+  it("normalizes resource policy hooks and defaults missing actions", () => {
+    expect(
+      normalizeFrameworkResourceSpec({
+        fields: [
+          {
+            name: "name",
+            required: true,
+            type: "string"
+          }
+        ],
+        label: "Customer",
+        ownership: "organization",
+        policy: {
+          write: {
+            mode: "ownership-aware",
+            ownerField: "ownerId"
+          }
+        },
+        relations: [
+          {
+            kind: "belongs-to",
+            name: "owner",
+            required: false,
+            target: "user",
+            targetScope: "platform"
+          }
+        ],
+        resource: "customer"
+      })
+    ).toMatchObject({
+      policy: {
+        archive: { mode: "organization-role" },
+        read: { mode: "organization-role" },
+        workflow: { mode: "organization-role" },
+        write: {
+          mode: "ownership-aware",
+          ownerField: "ownerId"
+        }
+      }
+    });
+  });
+
+  it("rejects policy hooks that reference unknown owner fields", () => {
+    expect(() =>
+      frameworkResourceSpecSchema.parse({
+        fields: [
+          {
+            name: "name",
+            required: true,
+            type: "string"
+          }
+        ],
+        label: "Deal",
+        ownership: "organization",
+        policy: {
+          write: {
+            mode: "ownership-aware",
+            ownerField: "ownerId"
+          }
+        },
+        resource: "deal"
+      })
+    ).toThrow(/policy ownerField references unknown field ownerId/i);
+  });
+
   it("rejects relations that shadow explicit fields", () => {
     expect(() =>
       frameworkResourceSpecSchema.parse({

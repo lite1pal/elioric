@@ -76,6 +76,24 @@ export const frameworkPermissionLevels = [
 export type FrameworkPermissionLevel =
   (typeof frameworkPermissionLevels)[number];
 
+export const frameworkResourcePolicyModes = [
+  "organization-role",
+  "ownership-aware"
+] as const;
+
+export type FrameworkResourcePolicyMode =
+  (typeof frameworkResourcePolicyModes)[number];
+
+export const frameworkResourcePolicyActions = [
+  "read",
+  "write",
+  "archive",
+  "workflow"
+] as const;
+
+export type FrameworkResourcePolicyAction =
+  (typeof frameworkResourcePolicyActions)[number];
+
 export const frameworkReservedResourceNames = [
   "user",
   "organization",
@@ -172,6 +190,18 @@ export interface FrameworkResourceArchiveDefinition {
   field: string;
 }
 
+export interface FrameworkResourcePolicyRuleSpec {
+  mode: FrameworkResourcePolicyMode;
+  ownerField?: string;
+}
+
+export interface FrameworkResourcePolicySpec {
+  archive: FrameworkResourcePolicyRuleSpec;
+  read: FrameworkResourcePolicyRuleSpec;
+  workflow: FrameworkResourcePolicyRuleSpec;
+  write: FrameworkResourcePolicyRuleSpec;
+}
+
 export interface FrameworkRouteDefinition {
   authStrategy?: FrameworkRouteAuthStrategy;
   id: string;
@@ -262,6 +292,14 @@ export const frameworkRelationTargetScopeSchema = z.enum(
 export const frameworkCrudFlagSchema = z.enum(frameworkCrudFlags);
 
 export const frameworkPermissionLevelSchema = z.enum(frameworkPermissionLevels);
+
+export const frameworkResourcePolicyModeSchema = z.enum(
+  frameworkResourcePolicyModes
+);
+
+export const frameworkResourcePolicyActionSchema = z.enum(
+  frameworkResourcePolicyActions
+);
 
 export const frameworkGeneratedFileActionSchema = z.enum(
   frameworkGeneratedFileActions
@@ -587,6 +625,32 @@ export const frameworkResourcePermissionsSpecSchema = z.record(
   frameworkPermissionLevelSchema
 );
 
+export const frameworkResourcePolicyRuleSpecSchema = z
+  .object({
+    mode: frameworkResourcePolicyModeSchema.optional(),
+    ownerField: frameworkFieldNameSchema.optional()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.mode !== "ownership-aware" && value.ownerField) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "ownerField can be set only when the policy mode is ownership-aware",
+        path: ["ownerField"]
+      });
+    }
+  });
+
+export const frameworkResourcePolicySpecSchema = z
+  .object({
+    archive: frameworkResourcePolicyRuleSpecSchema.optional(),
+    read: frameworkResourcePolicyRuleSpecSchema.optional(),
+    workflow: frameworkResourcePolicyRuleSpecSchema.optional(),
+    write: frameworkResourcePolicyRuleSpecSchema.optional()
+  })
+  .strict();
+
 export const frameworkResourceIndexSpecSchema = z
   .object({
     fields: z.array(frameworkFieldNameSchema).min(1),
@@ -643,6 +707,7 @@ export const frameworkResourceSpecInputSchema = z
     indexes: z.array(frameworkResourceIndexSpecSchema).optional(),
     label: nonEmptyStringSchema,
     ownership: frameworkOwnershipModeSchema,
+    policy: frameworkResourcePolicySpecSchema.optional(),
     permissions: frameworkResourcePermissionsSpecSchema.optional(),
     pluralLabel: nonEmptyStringSchema.optional(),
     relations: z.array(frameworkResourceRelationSpecSchema).optional(),
@@ -737,6 +802,20 @@ export const frameworkResourceSpecInputSchema = z
           code: z.ZodIssueCode.custom,
           message: `API filter references unknown field ${fieldName}`,
           path: ["api", "filters"]
+        });
+      }
+    }
+
+    for (const [action, rule] of Object.entries(value.policy ?? {})) {
+      if (!rule?.ownerField) {
+        continue;
+      }
+
+      if (!availableFieldNames.has(rule.ownerField)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `policy ownerField references unknown field ${rule.ownerField}`,
+          path: ["policy", action, "ownerField"]
         });
       }
     }
@@ -887,6 +966,40 @@ const normalizedFrameworkResourceUiSpecSchema = z
   })
   .strict();
 
+const normalizedFrameworkResourcePolicyRuleSpecSchema = z
+  .object({
+    mode: frameworkResourcePolicyModeSchema,
+    ownerField: frameworkFieldNameSchema.optional()
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.mode === "ownership-aware" && !value.ownerField) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "ownerField is required when the policy mode is ownership-aware",
+        path: ["ownerField"]
+      });
+    }
+
+    if (value.mode !== "ownership-aware" && value.ownerField) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "ownerField can be set only when the policy mode is ownership-aware",
+        path: ["ownerField"]
+      });
+    }
+  });
+
+const normalizedFrameworkResourcePolicySpecSchema = z
+  .object({
+    archive: normalizedFrameworkResourcePolicyRuleSpecSchema,
+    read: normalizedFrameworkResourcePolicyRuleSpecSchema,
+    workflow: normalizedFrameworkResourcePolicyRuleSpecSchema,
+    write: normalizedFrameworkResourcePolicyRuleSpecSchema
+  })
+  .strict();
+
 const normalizedFrameworkResourceTimestampsSpecSchema = z
   .object({
     createdAtField: frameworkFieldNameSchema.optional(),
@@ -942,6 +1055,7 @@ export const normalizedFrameworkResourceSpecSchema = z
     indexes: z.array(frameworkResourceIndexSpecSchema),
     label: nonEmptyStringSchema,
     ownership: frameworkOwnershipModeSchema,
+    policy: normalizedFrameworkResourcePolicySpecSchema,
     permissions: frameworkResourcePermissionsSpecSchema,
     pluralLabel: nonEmptyStringSchema,
     relations: z.array(normalizedFrameworkResourceRelationSpecSchema),
@@ -1028,6 +1142,20 @@ export const normalizedFrameworkResourceSpecSchema = z
         });
       }
     }
+
+    for (const [action, rule] of Object.entries(value.policy)) {
+      if (!rule.ownerField) {
+        continue;
+      }
+
+      if (!value.fields.some((field) => field.name === rule.ownerField)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `policy ownerField references unknown field ${rule.ownerField}`,
+          path: ["policy", action, "ownerField"]
+        });
+      }
+    }
   });
 
 export type FrameworkResourceSpec = z.infer<
@@ -1105,6 +1233,7 @@ export function normalizeFrameworkResourceSpec(
     indexes: input.indexes ?? [],
     label: input.label,
     ownership: input.ownership,
+    policy: normalizePolicy(input.policy),
     permissions: input.permissions ?? {},
     pluralLabel,
     relations,
@@ -1181,6 +1310,32 @@ function findDuplicates(values: readonly string[]) {
 
 function defaultRelationFieldName(name: string) {
   return `${name}Id`;
+}
+
+function normalizePolicy(
+  policy: FrameworkResourceSpecInput["policy"]
+): FrameworkResourcePolicySpec {
+  return {
+    archive: normalizePolicyRule(policy?.archive),
+    read: normalizePolicyRule(policy?.read),
+    workflow: normalizePolicyRule(policy?.workflow),
+    write: normalizePolicyRule(policy?.write)
+  };
+}
+
+function normalizePolicyRule(
+  rule: FrameworkResourcePolicyRuleSpec | undefined
+): FrameworkResourcePolicyRuleSpec {
+  if (!rule) {
+    return {
+      mode: "organization-role"
+    };
+  }
+
+  return {
+    mode: rule.mode ?? "organization-role",
+    ownerField: rule.ownerField
+  };
 }
 
 function isReservedResourceName(resourceName: string) {

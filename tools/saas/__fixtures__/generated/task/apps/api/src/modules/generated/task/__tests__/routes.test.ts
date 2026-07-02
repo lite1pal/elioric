@@ -78,6 +78,7 @@ function buildTestApp(
   overrides: Partial<ReturnType<typeof createTaskService>>,
   options: {
     accessError?: Error;
+    recordAccessError?: Error;
     session?: boolean;
   } = {}
 ) {
@@ -97,6 +98,11 @@ function buildTestApp(
       async assertOrganizationAccess() {
         if (options.accessError) {
           throw options.accessError;
+        }
+      },
+      async assertResourceAccess() {
+        if (options.recordAccessError) {
+          throw options.recordAccessError;
         }
       }
     },

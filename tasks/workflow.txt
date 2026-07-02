@@ -4,35 +4,6 @@ This file tracks task-system and agent-workflow work items.
 
 ## Queue
 
-- [ ] T-119 Add product-level authorization and policy hooks for generated products
-  status: ready
-  priority: high
-  owner: codex
-  branch:
-  pr:
-  last_updated: 2026-07-02
-  completed:
-  blocked_reason:
-  notes:
-    - 2026-07-02: generated products currently rely on organization-role CRUD rules, which is too weak for CRM and PM ownership or transition rules
-    - 2026-07-02: this task should create one supported seam for product-specific policy decisions instead of forcing hand-edited route logic
-  files:
-    - tools/saas/*
-    - apps/api/src/modules/generated/*
-    - apps/web/src/features/*
-    - packages/domain/src/product/*
-    - README.md
-    - docs/02-architecture.md
-    - docs/03-api.md
-    - docs/04-quality-gates.md
-    - docs/05-next-steps.md
-    - docs/07-change-log.md
-    - tasks/workflow.txt
-  acceptance:
-    - Generated products can declare supported policy hooks for read, write, archive, and workflow actions
-    - The default generated policy remains organization-role based, but products can opt into stricter generated ownership-aware rules
-    - Focused tests prove the policy seam without introducing product-to-platform boundary leaks
-
 - [ ] T-120 Add generated workflow and state-transition support
   status: ready
   priority: high
@@ -312,6 +283,36 @@ This file tracks task-system and agent-workflow work items.
     - The first proof product can render a real workspace page for a generated todo resource instead of placeholder-only UI
 
 ## Done
+
+- [x] T-119 Add product-level authorization and policy hooks for generated products
+  status: done
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed: 2026-07-02
+  blocked_reason:
+  notes:
+    - 2026-07-02: generated products currently rely on organization-role CRUD rules, which is too weak for CRM and PM ownership or transition rules
+    - 2026-07-02: this task should create one supported seam for product-specific policy decisions instead of forcing hand-edited route logic
+    - 2026-07-02: framework resource specs now normalize bounded `read`, `write`, `archive`, and future `workflow` policy declarations, generated routes now evaluate a platform `assertResourceAccess` seam after loading records, and the CRM template proves the stricter ownership-aware path through `deal.ownerId`
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/generated/*
+    - apps/web/src/features/*
+    - packages/domain/src/product/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/05-next-steps.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Generated products can declare supported policy hooks for read, write, archive, and workflow actions
+    - The default generated policy remains organization-role based, but products can opt into stricter generated ownership-aware rules
+    - Focused tests prove the policy seam without introducing product-to-platform boundary leaks
 
 - [x] T-118 Add archive and soft-delete generation for product-owned resources
   status: done

@@ -115,6 +115,12 @@ describe("saas product init", () => {
         listPath: string;
         navLabel: string;
         resource: {
+          policy?: {
+            archive: { mode: string; ownerField?: string };
+            read: { mode: string; ownerField?: string };
+            workflow: { mode: string; ownerField?: string };
+            write: { mode: string; ownerField?: string };
+          };
           relations: Array<{ target: string; targetScope: string }>;
           resource: string;
         };
@@ -153,6 +159,24 @@ describe("saas product init", () => {
         })
       ])
     );
+    expect(writtenSpec.resources[2]?.resource.policy).toEqual({
+      archive: {
+        mode: "ownership-aware",
+        ownerField: "ownerId"
+      },
+      read: {
+        mode: "ownership-aware",
+        ownerField: "ownerId"
+      },
+      workflow: {
+        mode: "ownership-aware",
+        ownerField: "ownerId"
+      },
+      write: {
+        mode: "ownership-aware",
+        ownerField: "ownerId"
+      }
+    });
   });
 });
 
