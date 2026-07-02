@@ -129,12 +129,94 @@ describe("saas product install", () => {
 
     expect(firstInstall.exitCode).toBe(0);
     expect(secondInstall.exitCode).toBe(0);
+    expect(secondInstall.stdout).toContain(
+      "generated file changes: 0 created, 0 updated"
+    );
+    expect(secondInstall.stdout).toContain("shared root patches: 0 updated");
     expect(readGenerated(repoRoot, "apps/api/src/product-module.ts")).toContain(
       'import { todoProductModule } from "@auditrail/domain/todo";'
     );
     expect(
       readGenerated(repoRoot, "apps/api/src/product-module.ts").match(
         /todoProductModule/g
+      )?.length
+    ).toBe(2);
+    expect(
+      readGenerated(repoRoot, "apps/web/app/product-module.ts").match(
+        /todoProductModule/g
+      )?.length
+    ).toBe(2);
+    expect(
+      readGenerated(repoRoot, "packages/domain/src/index.ts").match(
+        /export \* from "\.\/todo\/index\.js";/g
+      )?.length
+    ).toBe(1);
+  });
+
+  it("can upgrade an installed multi-resource product with --force without duplicating shared runtime seams", () => {
+    const repoRoot = createSeededRepo(createdRoots);
+
+    executeSaasCli({
+      args: [
+        "init",
+        "product",
+        "crm",
+        "--template",
+        "crm",
+        "--output",
+        "specs/crm.product.json"
+      ],
+      repoRoot
+    });
+
+    const firstInstall = executeSaasCli({
+      args: ["install", "product", "specs/crm.product.json"],
+      repoRoot
+    });
+
+    const specPath = resolve(repoRoot, "specs/crm.product.json");
+    const spec = JSON.parse(readFileSync(specPath, "utf8")) as {
+      home: { title: string };
+      name: string;
+      resources: Array<{ navLabel: string; resource: { resource: string } }>;
+    };
+    spec.name = "Revenue CRM";
+    spec.home.title = "Revenue workspace";
+    const companyResource = spec.resources.find(
+      (resource) => resource.resource.resource === "company"
+    );
+
+    if (!companyResource) {
+      throw new Error("Expected company resource in CRM spec.");
+    }
+
+    companyResource.navLabel = "Accounts";
+    writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`);
+
+    const secondInstall = executeSaasCli({
+      args: ["install", "product", "specs/crm.product.json", "--force"],
+      repoRoot
+    });
+
+    expect(firstInstall.exitCode).toBe(0);
+    expect(secondInstall.exitCode).toBe(0);
+    expect(secondInstall.stdout).toContain("Installed product: crm");
+    expect(secondInstall.stdout).toContain("generated file changes: 0 created");
+    expect(secondInstall.stdout).toContain("shared root patches: 0 updated");
+    expect(
+      readGenerated(repoRoot, "packages/domain/src/crm/product.ts")
+    ).toContain('"name": "Revenue CRM"');
+    expect(
+      readGenerated(repoRoot, "packages/domain/src/crm/product.ts")
+    ).toContain('"label": "Accounts"');
+    expect(
+      readGenerated(repoRoot, "apps/api/src/product-module.ts").match(
+        /crmProductModule/g
+      )?.length
+    ).toBe(2);
+    expect(
+      readGenerated(repoRoot, "apps/web/app/product-module.ts").match(
+        /crmProductModule/g
       )?.length
     ).toBe(2);
   });

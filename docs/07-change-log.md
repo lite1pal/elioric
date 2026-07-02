@@ -2,6 +2,13 @@
 
 ## 2026-07-02
 
+- Completed T-126 by hardening reinstall and upgrade semantics for
+  multi-resource products. `install product --force` now reports deterministic
+  generated-file and shared-root change states, focused tests now prove both
+  no-op reinstall and spec-driven upgrade behavior for generated products, and
+  the current additive overwrite-based upgrade limits are documented
+  explicitly instead of remaining implicit installer behavior.
+
 - Completed T-125 by proving a CLI-generated CRM product end to end. The repo
   now commits the generated `crm` product spec and installed `company`,
   `contact`, `deal`, and `note` slices; generated CRM web tests now cover a

@@ -17,9 +17,17 @@ import {
 const productInstallStageRoot = "tmp/saas-product-install";
 
 export interface ProductInstallResult {
+  generatedFileChanges: readonly ProductInstallChange[];
   installedProductId: string;
   resourceIds: readonly string[];
+  rootPatchChanges: readonly ProductInstallChange[];
   writtenFiles: readonly string[];
+}
+
+export interface ProductInstallChange {
+  action: "create" | "skip" | "update";
+  kind: "generated-file" | "root-patch";
+  path: string;
 }
 
 export function installProductFromFile(input: {
@@ -70,13 +78,17 @@ export function installProductFromFile(input: {
     }
 
     const generatedFiles = createProductGeneratedFiles(product);
-    ensureWritableFiles({
+    const preparedGeneratedWrites = prepareGeneratedProductWrites({
       files: generatedFiles,
       force: input.force ?? false,
       repoRoot
     });
 
-    for (const file of generatedFiles) {
+    for (const file of preparedGeneratedWrites) {
+      if (file.action === "skip") {
+        continue;
+      }
+
       const absolutePath = resolve(repoRoot, file.path);
 
       mkdirSync(dirname(absolutePath), {
@@ -85,42 +97,50 @@ export function installProductFromFile(input: {
       writeFileSync(absolutePath, ensureTrailingNewline(file.contents));
     }
 
-    patchRootFile({
-      filePath: "packages/domain/src/index.ts",
-      repoRoot,
-      update: (contents) =>
-        insertAfterAnchor({
-          anchor: 'export * from "./webhooks/index.js";',
-          contents,
-          insertion: `export * from "./${product.id}/index.js";`
-        })
-    });
-    patchRootFile({
-      filePath: "packages/domain/package.json",
-      repoRoot,
-      update: (contents) => patchDomainPackageExports(contents, product.id)
-    });
-    patchRootFile({
-      filePath: "apps/api/src/product-module.ts",
-      repoRoot,
-      update: (contents) => patchApiProductRuntime(contents, product.id)
-    });
-    patchRootFile({
-      filePath: "apps/web/app/product-module.ts",
-      repoRoot,
-      update: (contents) => patchWebProductRuntime(contents, product.id)
-    });
-    patchRootFile({
-      filePath: "apps/api/src/__tests__/product-module.test.ts",
-      repoRoot,
-      update: (contents) => patchApiProductRuntimeTest(contents, product)
-    });
+    const rootPatchChanges = [
+      patchRootFile({
+        filePath: "packages/domain/src/index.ts",
+        repoRoot,
+        update: (contents) =>
+          insertAfterAnchor({
+            anchor: 'export * from "./webhooks/index.js";',
+            contents,
+            insertion: `export * from "./${product.id}/index.js";`
+          })
+      }),
+      patchRootFile({
+        filePath: "packages/domain/package.json",
+        repoRoot,
+        update: (contents) => patchDomainPackageExports(contents, product.id)
+      }),
+      patchRootFile({
+        filePath: "apps/api/src/product-module.ts",
+        repoRoot,
+        update: (contents) => patchApiProductRuntime(contents, product.id)
+      }),
+      patchRootFile({
+        filePath: "apps/web/app/product-module.ts",
+        repoRoot,
+        update: (contents) => patchWebProductRuntime(contents, product.id)
+      }),
+      patchRootFile({
+        filePath: "apps/api/src/__tests__/product-module.test.ts",
+        repoRoot,
+        update: (contents) => patchApiProductRuntimeTest(contents, product)
+      })
+    ] satisfies readonly ProductInstallChange[];
 
     return {
+      generatedFileChanges: preparedGeneratedWrites.map((file) => ({
+        action: file.action,
+        kind: "generated-file",
+        path: file.path
+      })),
       installedProductId: product.id,
       resourceIds: product.resources.map(
         (resource: GeneratedProductResource) => resource.resource.resource
       ),
+      rootPatchChanges,
       writtenFiles: generatedFiles.map((file: PendingProductFile) => file.path)
     };
   } finally {
@@ -132,17 +152,39 @@ export function installProductFromFile(input: {
 }
 
 export function formatInstalledProductSummary(result: ProductInstallResult) {
+  const createdGeneratedFiles = result.generatedFileChanges.filter(
+    (change) => change.action === "create"
+  ).length;
+  const updatedGeneratedFiles = result.generatedFileChanges.filter(
+    (change) => change.action === "update"
+  ).length;
+  const skippedGeneratedFiles = result.generatedFileChanges.filter(
+    (change) => change.action === "skip"
+  ).length;
+  const updatedRootPatches = result.rootPatchChanges.filter(
+    (change) => change.action === "update"
+  ).length;
+  const skippedRootPatches = result.rootPatchChanges.filter(
+    (change) => change.action === "skip"
+  ).length;
+
   return [
     `Installed product: ${result.installedProductId}`,
     "",
     `- resources: ${result.resourceIds.join(", ")}`,
-    `- written files: ${result.writtenFiles.length}`
+    `- generated files: ${result.writtenFiles.length}`,
+    `- generated file changes: ${createdGeneratedFiles} created, ${updatedGeneratedFiles} updated, ${skippedGeneratedFiles} unchanged`,
+    `- shared root patches: ${updatedRootPatches} updated, ${skippedRootPatches} unchanged`
   ].join("\n");
 }
 
 interface PendingProductFile {
   contents: string;
   path: string;
+}
+
+interface PreparedProductWrite extends PendingProductFile {
+  action: "create" | "skip" | "update";
 }
 
 export function createProductGeneratedFiles(
@@ -2168,15 +2210,72 @@ function patchRootFile(input: {
   filePath: string;
   repoRoot: string;
   update: (contents: string) => string;
-}) {
+}): ProductInstallChange {
   const absolutePath = resolve(input.repoRoot, input.filePath);
 
   if (!existsSync(absolutePath)) {
     throw new Error(`Missing required root file '${input.filePath}'.`);
   }
 
-  const nextContents = input.update(readFileSync(absolutePath, "utf8"));
-  writeFileSync(absolutePath, ensureTrailingNewline(nextContents));
+  const currentContents = readFileSync(absolutePath, "utf8");
+  const nextContents = ensureTrailingNewline(input.update(currentContents));
+
+  if (currentContents === nextContents) {
+    return {
+      action: "skip",
+      kind: "root-patch",
+      path: input.filePath
+    };
+  }
+
+  writeFileSync(absolutePath, nextContents);
+
+  return {
+    action: existsSync(absolutePath) ? "update" : "create",
+    kind: "root-patch",
+    path: input.filePath
+  };
+}
+
+function prepareGeneratedProductWrites(input: {
+  files: readonly PendingProductFile[];
+  force: boolean;
+  repoRoot: string;
+}) {
+  ensureWritableFiles({
+    files: input.files,
+    force: input.force,
+    repoRoot: input.repoRoot
+  });
+
+  return input.files.map<PreparedProductWrite>((file) => {
+    const absolutePath = resolve(input.repoRoot, file.path);
+    const nextContents = ensureTrailingNewline(file.contents);
+
+    if (!existsSync(absolutePath)) {
+      return {
+        ...file,
+        action: "create",
+        contents: nextContents
+      };
+    }
+
+    const currentContents = readFileSync(absolutePath, "utf8");
+
+    if (currentContents === nextContents) {
+      return {
+        ...file,
+        action: "skip",
+        contents: nextContents
+      };
+    }
+
+    return {
+      ...file,
+      action: "update",
+      contents: nextContents
+    };
+  });
 }
 
 function ensureWritableFiles(input: {

@@ -223,6 +223,10 @@ The current product-generation slice is intentionally narrow:
   `products:backfill crm`, generated DB schema plus migrations, generated CRM
   product-owned web routes, and a real Postgres-backed API flow across
   company, contact, deal, and note
+- `install product --force` now has an explicit supported scope: it is safe
+  for rerunning generator-owned product files and deterministic shared runtime
+  patches, but it is not an uninstall or rename mechanism and it does not
+  clean up no-longer-generated files automatically
 - the committed proof now covers generated product install, test migration,
   generated web page load, generated server-action
   create/update/archive/unarchive, generated validation feedback with

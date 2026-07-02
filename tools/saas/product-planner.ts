@@ -166,7 +166,9 @@ function createAssumptions(product: GeneratedProductSpec) {
     "Product install reuses the existing repo-root generated-resource seam for each embedded resource before patching product runtime files.",
     "Generated product UI is currently limited to a product home route plus product-owned list-and-create resource pages.",
     "The current product-generation slice does not add custom product API routes; embedded resources remain the runtime-backed data surface.",
-    `Organizations created after install receive the product through the shared installed-product runtime, while existing organizations can be backfilled explicitly with pnpm products:backfill ${product.id}.`
+    `Organizations created after install receive the product through the shared installed-product runtime, while existing organizations can be backfilled explicitly with pnpm products:backfill ${product.id}.`,
+    "Re-running install product --force is supported only for generator-owned product files and deterministic shared runtime patches; manual edits in those generated files will be overwritten.",
+    "The current upgrade story is additive and overwrite-based. It does not remove old product ids, rename previously-installed products, or clean up no-longer-generated files automatically."
   ] as const;
 }
 

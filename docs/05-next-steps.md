@@ -21,9 +21,13 @@ The immediate Elioric framework roadmap is now:
    Postgres-backed API integration flow.
 1. T-126: harden reinstall and upgrade semantics for multi-resource products
    so CLI-owned products can evolve safely after the first install
+   Status: done. Product install now reports deterministic generated-file and
+   shared-root change states, force reinstall and spec-upgrade behavior are
+   covered by focused tests, and the current overwrite-based upgrade limits
+   are documented explicitly.
 1. broaden relation-aware product generation beyond the current bounded project
-   and product-local target slice so a PM slice can compose task -> project and
-   comment -> task without manual page logic
+  and product-local target slice so a PM slice can compose task -> project and
+  comment -> task without manual page logic
 1. generated product UI depth beyond the current
    create/list/detail/edit/archive slice: richer field widgets and workspace
    summaries
@@ -42,8 +46,8 @@ meaningful checkpoint after the committed todo end-to-end proof is to deepen tha
 believable PM slice instead of a single-resource workspace proof.
 The CRM template now provides the first bounded multi-resource business-product
 family, and archive, record-policy, and workflow generation are now in place,
-so the next leverage move is reinstall and upgrade hardening rather than more
-template plumbing.
+so the next leverage move is richer product UX depth rather than more install
+plumbing.
 
 The hosted AuditTrail MVP remains the release gate, but the framework work now
 has a cleaner sequence for deeper multiple-product proof, and the generated

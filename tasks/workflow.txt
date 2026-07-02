@@ -156,18 +156,20 @@ This file tracks task-system and agent-workflow work items.
     - The committed proof covers a believable path such as create company -> create contact -> create deal -> update stage -> archive or close record
     - Docs explicitly describe what is now generated versus what still remains manual for broader CRM reuse
 
-- [ ] T-126 Prove generator-safe reinstall and upgrade semantics for multi-resource products
-  status: ready
+- [x] T-126 Prove generator-safe reinstall and upgrade semantics for multi-resource products
+  status: done
   priority: medium
   owner: codex
   branch:
   pr:
   last_updated: 2026-07-02
-  completed:
+  completed: 2026-07-02
   blocked_reason:
   notes:
     - 2026-07-02: product generation is only trustworthy for broader product families if reruns and upgrades remain safe
     - 2026-07-02: this task should harden `install product --force` for multi-resource products and document the supported drift story
+    - 2026-07-02: completed by making product install report deterministic generated-file and shared-root change states, adding focused force-reinstall and spec-upgrade tests, and documenting the current overwrite-based upgrade assumptions explicitly
+    - 2026-07-02: supported upgrade story is now explicit: generator-owned product files may be overwritten by `install product --force`, while product renames, uninstall cleanup, and no-longer-generated file removal remain out of scope
   files:
     - tools/saas/*
     - README.md
@@ -179,6 +181,325 @@ This file tracks task-system and agent-workflow work items.
     - Reinstalling a generated multi-resource product with `--force` is deterministic and covered by focused tests
     - The planner or installer reports supported upgrade and drift assumptions explicitly
     - The committed proof product can be regenerated without hand-fixing shared runtime seams
+
+- [ ] T-127 Add generator-owned file storage and attachments primitives
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: generated products still need manual storage plumbing for common use cases such as notes, comments, tickets, and assets
+    - 2026-07-02: this task should add one bounded platform storage seam plus generator support for attachment-capable resources
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/platform/*
+    - apps/worker/src/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - packages/db/src/schema/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - The platform exposes one reusable storage primitive for upload intent, persisted attachment metadata, and secure retrieval
+    - Product specs can opt a generated resource into attachments without hand-built API or web wiring
+    - One committed proof product demonstrates attachment upload and read flows end to end
+
+- [ ] T-128 Add generator-owned notifications primitives
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: generated products still need custom plumbing for essential email or in-app notifications
+    - 2026-07-02: this task should add one bounded platform notification seam that generated products can trigger through config instead of product code
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/platform/*
+    - apps/worker/src/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - packages/db/src/schema/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - The platform exposes one reusable notification primitive for queued delivery and delivery-status visibility
+    - Product specs can opt generated workflows or record actions into bounded notifications without custom runtime code
+    - One committed proof product demonstrates at least one generated notification path end to end
+
+- [ ] T-129 Add generator-owned search, import, and export primitives
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: real internal products still need repetitive plumbing for text search, CSV import, and export workflows
+    - 2026-07-02: this task should cover one bounded search contract plus async import and export seams on top of the worker
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/generated/*
+    - apps/api/src/modules/platform/*
+    - apps/worker/src/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - packages/db/src/schema/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Generated resources expose a reusable search contract instead of ad hoc query plumbing
+    - The platform provides bounded import and export job seams that generated products can opt into
+    - One committed proof product demonstrates import or export through the worker and visible status records
+
+- [ ] T-130 Add generator-owned product audit-log primitives
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: generated products still lack a default operator-facing record of product actions outside the AuditTrail product itself
+    - 2026-07-02: this task should add one reusable audit-log seam for generated create, update, archive, delete, and workflow actions
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/platform/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - packages/db/src/schema/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Generated products can opt into a reusable product-audit stream without custom product wiring
+    - The platform persists and exposes bounded product-action history for generated resources
+    - One committed proof product demonstrates action history for at least create, update, and archive
+
+- [ ] T-131 Add generator-owned seeded demo data and sample environments
+  status: ready
+  priority: medium
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: freshly installed generated products are structurally correct but still too empty for fast operator or product validation
+    - 2026-07-02: this task should let product specs declare bounded demo data so a generated product is usable immediately after install
+  files:
+    - tools/saas/*
+    - packages/db/src/*
+    - apps/web/src/features/*
+    - README.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Product specs can declare bounded seed data for generated resources
+    - The repo exposes one supported CLI or seed command that loads demo data for generated proof products
+    - One committed proof product demonstrates a non-empty post-install workspace without manual inserts
+
+- [ ] T-132 Add platform feature flags and product-scoped toggles
+  status: ready
+  priority: medium
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: products still need manual conditionals when one feature should roll out gradually or differ by organization
+    - 2026-07-02: this task should add one bounded feature-flag seam that products can consume declaratively
+  files:
+    - apps/api/src/modules/platform/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - packages/db/src/schema/*
+    - tools/saas/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - The platform persists product-scoped or organization-scoped feature flags through one shared seam
+    - Generated products can declare bounded optional capabilities behind flags without hand-built conditionals
+    - One committed proof product demonstrates a gated generated feature path
+
+- [ ] T-133 Make product registration fully manifest and capability driven
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: platform and product separation is real, but product install still patches several shared runtime files directly
+    - 2026-07-02: this task should move registration of routes, nav, onboarding, settings, jobs, and meters behind a single declarative capability model
+  files:
+    - packages/domain/src/product/*
+    - apps/api/src/*
+    - apps/web/app/*
+    - tools/saas/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Products declare capabilities through one manifest-driven contract instead of several direct shared-file edits
+    - API and web runtime composition consume the manifest consistently for navigation, onboarding, settings, and jobs
+    - One committed proof product can be installed without hand-maintained bootstrap assumptions beyond the manifest seam
+
+- [ ] T-134 Add first-class product lifecycle state and disable or uninstall semantics
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: product enablement exists, but lifecycle support is still incomplete for disable, uninstall, and richer install-state visibility
+    - 2026-07-02: this task should turn product lifecycle into explicit platform data instead of one-way install assumptions
+  files:
+    - apps/api/src/modules/platform/*
+    - apps/web/src/features/*
+    - packages/domain/src/product/*
+    - packages/db/src/schema/*
+    - tools/saas/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - The platform persists explicit product lifecycle states such as installed, enabled, disabled, and removable
+    - Operators can disable or uninstall a generated product through supported runtime seams without corrupting shared bootstrap state
+    - Docs explain the supported lifecycle assumptions for generated products clearly
+
+- [ ] T-135 Add worker scheduling, replay, and operator inspection primitives
+  status: ready
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: the worker is a strong execution substrate but still lacks the operator plane expected from a default platform
+    - 2026-07-02: this task should add bounded scheduling, replay, failure inspection, and visibility rather than only handler execution
+  files:
+    - apps/worker/src/*
+    - apps/api/src/modules/jobs/*
+    - apps/web/src/features/*
+    - packages/domain/src/jobs/*
+    - packages/db/src/schema/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - The platform exposes one bounded scheduling seam for recurring worker jobs
+    - Operators can inspect failed jobs and replay bounded job types through supported runtime surfaces
+    - One committed proof product or platform feature demonstrates scheduled or replayed work end to end
+
+- [ ] T-136 Complete the platform auth baseline with session controls and provider seams
+  status: ready
+  priority: medium
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: auth is solid for internal SaaS, but still incomplete as a default platform capability
+    - 2026-07-02: this task should add bounded session-management and provider seams before larger enterprise auth work such as SAML or SCIM
+  files:
+    - apps/api/src/modules/auth/*
+    - apps/web/src/features/auth/*
+    - packages/domain/src/*
+    - README.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/06-deployment.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Users can inspect and revoke active sessions through supported platform routes and web screens
+    - The auth runtime exposes bounded provider seams for future password or OAuth modules without destabilizing current magic-link behavior
+    - Focused tests prove the new auth-management contract without relying on global environment mutation
+
+- [ ] T-137 Add generator-owned permission presets and assignment primitives
+  status: ready
+  priority: medium
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-02
+  completed:
+  blocked_reason:
+  notes:
+    - 2026-07-02: generated products can now express bounded policy hooks, but product authors still need too much manual reasoning for common role and ownership patterns
+    - 2026-07-02: this task should add declarative presets such as owner-only, assignee-write, reviewer-read, and watcher-aware patterns on top of the current policy seam
+  files:
+    - tools/saas/*
+    - apps/api/src/modules/platform/*
+    - apps/web/src/features/*
+    - packages/domain/src/*
+    - README.md
+    - docs/02-architecture.md
+    - docs/03-api.md
+    - docs/04-quality-gates.md
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Product specs can choose from reusable permission presets instead of only low-level policy declarations
+    - Generated forms and views understand common assignment fields such as owner, assignee, reviewer, or watcher
+    - One committed proof product demonstrates a richer assignment-aware authorization path without manual product code
 
 - [ ] T-042 Remove tracked `.github` and `.vscode` files from the repo index
   status: blocked

@@ -464,6 +464,12 @@ It must stay deterministic and fail closed:
   product-owned web files it knows how to generate
 - `install product --force` must remain safe for already-generated product
   proofs, including embedded generated resources
+- `install product --force` must report deterministic generated-file and
+  shared-root change states so reruns and upgrades are observable instead of
+  silent
+- the supported upgrade story must stay explicit: generated product files may
+  be overwritten, but force install is not responsible for uninstall cleanup,
+  product-id renames, or removing files that are no longer generated
 - generated edit flows must preserve persisted field values when only some
   draft query overrides are present
 - it fails on conflicting generated product files unless `--force` is passed

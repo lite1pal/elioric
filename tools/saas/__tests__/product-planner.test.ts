@@ -80,6 +80,12 @@ describe("saas product planner", () => {
     expect(formatProductPlanReport(firstPlan)).toContain(
       "Shared Root Patches"
     );
+    expect(firstPlan.assumptions).toContain(
+      "Re-running install product --force is supported only for generator-owned product files and deterministic shared runtime patches; manual edits in those generated files will be overwritten."
+    );
+    expect(firstPlan.assumptions).toContain(
+      "The current upgrade story is additive and overwrite-based. It does not remove old product ids, rename previously-installed products, or clean up no-longer-generated files automatically."
+    );
   });
 
   it("prints a readable CLI report and supports json output", () => {
@@ -114,6 +120,9 @@ describe("saas product planner", () => {
     );
     expect(reportResult.stdout).toContain(
       "apps/api/src/product-module.ts: Register the generated product module in the API product runtime."
+    );
+    expect(reportResult.stdout).toContain(
+      "manual edits in those generated files will be overwritten."
     );
 
     expect(jsonResult.exitCode).toBe(0);
