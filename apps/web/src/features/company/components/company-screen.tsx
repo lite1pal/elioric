@@ -1,7 +1,7 @@
-import type { CompanyRecord } from "../domain/schemas";
+import type { CompanyRecord } from "../domain/schemas.js";
 
-import { CompanyEmptyState } from "./company-empty-state";
-import { CompanyTable } from "./company-table";
+import { CompanyEmptyState } from "./company-empty-state.js";
+import { CompanyTable } from "./company-table.js";
 
 type CompanyRelationPresentation = {
   href?: string;

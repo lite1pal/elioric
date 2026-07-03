@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { todoProductModule } from "../product-module";
+import { todoProductModule } from "../product-module.js";
 
 describe("todoProductModule", () => {
   it("builds scoped shell navigation for Todo", () => {

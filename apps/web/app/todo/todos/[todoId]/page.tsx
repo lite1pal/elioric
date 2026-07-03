@@ -31,12 +31,14 @@ export default async function ResourceDetailPage({
     installedProducts: data.workspace.activeOrganizationInstalledProducts,
     preferredProductId: "todo"
   });
-  const workspaceSuffix = buildWorkspaceSuffix(
-    data.workspace.activeOrganizationId ?? "",
-    data.workspace.activeProjectId ?? undefined,
-    data.listQuery,
-    { includeCursor: true }
-  );
+  const workspaceSuffix = data.workspace.activeOrganizationId
+    ? buildWorkspaceSuffix(
+        data.workspace.activeOrganizationId,
+        data.workspace.activeProjectId ?? undefined,
+        data.listQuery,
+        { includeCursor: true }
+      )
+    : "";
   const listHref = "/todo/todos" + workspaceSuffix;
   const editHref = data.item ? "/todo/todos" + `/${data.item.id}/edit${workspaceSuffix}` : listHref;
 
@@ -63,7 +65,9 @@ export default async function ResourceDetailPage({
         {data.feedback ? (
           <p className="rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 text-sm text-[var(--foreground)]">{data.feedback}</p>
         ) : null}
-        {data.item ? (
+        {!data.workspace.activeOrganizationId ? (
+          <section className="rounded-xl border border-dashed border-[var(--border)] px-4 py-4 text-sm text-[var(--muted)]">No workspace with the Todo product is enabled for this account yet.</section>
+        ) : data.item ? (
           <section className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4">
             <div className="grid gap-1">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Title</p>
@@ -84,7 +88,7 @@ export default async function ResourceDetailPage({
 
             <form action={data.item.archivedAt ? unarchiveTodoWorkspaceAction : archiveTodoWorkspaceAction} className="pt-2">
               <input name="todoId" type="hidden" value={data.item.id} />
-              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
+              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
               <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
           <input name="list_archived" type="hidden" value={data.listQuery.archived} />
           <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
@@ -142,7 +146,11 @@ function buildWorkspaceSuffix(
     includeCursor?: boolean;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
 
   if (projectId) {
     search.set("projectId", projectId);

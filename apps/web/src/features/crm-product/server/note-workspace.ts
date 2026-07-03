@@ -114,7 +114,7 @@ export async function createNoteWorkspaceAction(formData: FormData) {
     return redirect(
       buildFailurePath("/crm/notes", "", projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: "Enable the CRM product for a workspace before creating records."
+        feedback: "Enable the CRM product for a workspace before managing notes."
       }) as never
     );
   }
@@ -147,6 +147,14 @@ export async function updateNoteWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourceEditPath("/crm/notes", noteId), "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the CRM product for a workspace before managing notes."
+      }) as never
+    );
+  }
   try {
     const payload = updateNoteInputSchema.parse({
       body: String(formData.get("body") ?? ""),
@@ -181,6 +189,14 @@ export async function archiveNoteWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/notes", noteId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing notes."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).archive(
@@ -217,6 +233,14 @@ export async function unarchiveNoteWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/notes", noteId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing notes."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(

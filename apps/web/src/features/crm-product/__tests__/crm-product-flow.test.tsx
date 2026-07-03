@@ -821,7 +821,7 @@ describe("generated crm product flow", () => {
     await createDealWorkspaceAction(formData);
 
     expect(redirectMock).toHaveBeenCalledWith(
-      `/crm/deals?archived=exclude&feedback=Enable+the+CRM+product+for+a+workspace+before+creating+records.&draft_name=Platform+Expansion&draft_stage=lead&draft_amount=15000&draft_companyId=${encodeURIComponent(COMPANY_ID)}&draft_ownerId=${encodeURIComponent(USER_ID)}`
+      `/crm/deals?archived=exclude&feedback=Enable+the+CRM+product+for+a+workspace+before+managing+deals.&draft_name=Platform+Expansion&draft_stage=lead&draft_amount=15000&draft_companyId=${encodeURIComponent(COMPANY_ID)}&draft_ownerId=${encodeURIComponent(USER_ID)}`
     );
   });
 });

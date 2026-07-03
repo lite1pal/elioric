@@ -114,7 +114,7 @@ export async function createDealWorkspaceAction(formData: FormData) {
     return redirect(
       buildFailurePath("/crm/deals", "", projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: "Enable the CRM product for a workspace before creating records."
+        feedback: "Enable the CRM product for a workspace before managing deals."
       }) as never
     );
   }
@@ -150,6 +150,14 @@ export async function updateDealWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourceEditPath("/crm/deals", dealId), "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the CRM product for a workspace before managing deals."
+      }) as never
+    );
+  }
   try {
     const payload = updateDealInputSchema.parse({
       name: String(formData.get("name") ?? ""),
@@ -188,6 +196,14 @@ export async function archiveDealWorkspaceAction(formData: FormData) {
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
 
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/deals", dealId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing deals."
+      }) as never
+    );
+  }
+
   try {
     await createResourceClient(createServerApiClient()).archive(
       organizationId,
@@ -223,6 +239,14 @@ export async function unarchiveDealWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/deals", dealId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing deals."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(

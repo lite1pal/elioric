@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { NoteRecord } from "../domain/schemas";
+import type { NoteRecord } from "../domain/schemas.js";
 
 type NoteFormRelationOption = {
   label: string;

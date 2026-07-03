@@ -1,7 +1,7 @@
-import type { ContactRecord } from "../domain/schemas";
+import type { ContactRecord } from "../domain/schemas.js";
 
-import { ContactEmptyState } from "./contact-empty-state";
-import { ContactTable } from "./contact-table";
+import { ContactEmptyState } from "./contact-empty-state.js";
+import { ContactTable } from "./contact-table.js";
 
 type ContactRelationPresentation = {
   href?: string;

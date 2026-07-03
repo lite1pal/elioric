@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApiClient, ApiRequestOptions } from "@/src/lib/api/api-client";
-import { createResourceClient } from "../api/note-client";
+import { createResourceClient } from "../api/note-client.js";
 
 describe("createResourceClient", () => {
   it("loads notes through the API client", async () => {

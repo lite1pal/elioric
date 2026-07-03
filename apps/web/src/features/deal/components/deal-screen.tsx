@@ -1,7 +1,7 @@
-import type { DealRecord } from "../domain/schemas";
+import type { DealRecord } from "../domain/schemas.js";
 
-import { DealEmptyState } from "./deal-empty-state";
-import { DealTable } from "./deal-table";
+import { DealEmptyState } from "./deal-empty-state.js";
+import { DealTable } from "./deal-table.js";
 
 type DealRelationPresentation = {
   href?: string;

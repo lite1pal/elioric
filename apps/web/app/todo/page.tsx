@@ -48,7 +48,9 @@ export default async function ProductPage({ searchParams }: ProductPageProps) {
         organizationName={workspace.activeOrganization?.name}
         resourceLinks={
           workspace.activeOrganizationId
-            ? [{ href: `/todo/todos${workspaceSuffix}`, label: "Todos" }]
+            ? [
+                { href: `/todo/todos${workspaceSuffix}`, label: "Todos" },
+              ]
             : []
         }
       />
@@ -63,7 +65,8 @@ function buildWorkspaceSuffix(
     return "";
   }
 
-  const query = new URLSearchParams({ organizationId });
+  const query = new URLSearchParams();
+  query.set("organizationId", organizationId);
 
   if (projectId) {
     query.set("projectId", projectId);

@@ -52,7 +52,7 @@ export default async function ProductPage({ searchParams }: ProductPageProps) {
                 { href: `/crm/companies${workspaceSuffix}`, label: "Companies" },
                 { href: `/crm/contacts${workspaceSuffix}`, label: "Contacts" },
                 { href: `/crm/deals${workspaceSuffix}`, label: "Deals" },
-                { href: `/crm/notes${workspaceSuffix}`, label: "Notes" }
+                { href: `/crm/notes${workspaceSuffix}`, label: "Notes" },
               ]
             : []
         }
@@ -68,7 +68,8 @@ function buildWorkspaceSuffix(
     return "";
   }
 
-  const query = new URLSearchParams({ organizationId });
+  const query = new URLSearchParams();
+  query.set("organizationId", organizationId);
 
   if (projectId) {
     query.set("projectId", projectId);

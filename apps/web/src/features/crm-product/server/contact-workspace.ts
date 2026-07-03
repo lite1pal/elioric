@@ -114,7 +114,7 @@ export async function createContactWorkspaceAction(formData: FormData) {
     return redirect(
       buildFailurePath("/crm/contacts", "", projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: "Enable the CRM product for a workspace before creating records."
+        feedback: "Enable the CRM product for a workspace before managing contacts."
       }) as never
     );
   }
@@ -149,6 +149,14 @@ export async function updateContactWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourceEditPath("/crm/contacts", contactId), "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the CRM product for a workspace before managing contacts."
+      }) as never
+    );
+  }
   try {
     const payload = updateContactInputSchema.parse({
       name: String(formData.get("name") ?? ""),
@@ -186,6 +194,14 @@ export async function archiveContactWorkspaceAction(formData: FormData) {
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
 
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/contacts", contactId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing contacts."
+      }) as never
+    );
+  }
+
   try {
     await createResourceClient(createServerApiClient()).archive(
       organizationId,
@@ -221,6 +237,14 @@ export async function unarchiveContactWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/contacts", contactId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing contacts."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(

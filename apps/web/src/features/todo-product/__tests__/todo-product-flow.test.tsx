@@ -462,7 +462,7 @@ describe("generated todo product flow", () => {
     await createTodoWorkspaceAction(formData);
 
     expect(redirectMock).toHaveBeenCalledWith(
-      "/todo/todos?archived=exclude&feedback=Enable+the+Todo+product+for+a+workspace+before+creating+todos.&draft_title=Clean+up+at+home&draft_details=you+know&draft_status=todo&draft_dueAt=2026-07-03T10%3A00"
+      "/todo/todos?archived=exclude&feedback=Enable+the+Todo+product+for+a+workspace+before+managing+todos.&draft_title=Clean+up+at+home&draft_details=you+know&draft_status=todo&draft_dueAt=2026-07-03T10%3A00"
     );
   });
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { crmProductModule } from "../product-module";
+import { crmProductModule } from "../product-module.js";
 
 describe("crmProductModule", () => {
   it("builds scoped shell navigation for CRM", () => {

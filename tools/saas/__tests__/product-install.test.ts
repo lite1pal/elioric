@@ -59,7 +59,7 @@ describe("saas product install", () => {
       '"./todo"'
     );
     expect(readGenerated(repoRoot, "packages/domain/src/index.ts")).toContain(
-      'export * from "./todo/index.js";'
+      'export * from "./todo/index";'
     );
     expect(readGenerated(repoRoot, "packages/domain/src/todo/product.ts")).toContain(
       "todoProduct"
@@ -67,15 +67,33 @@ describe("saas product install", () => {
     expect(readGenerated(repoRoot, "apps/web/app/todo/page.tsx")).toContain(
       'getProductMetadata("todo")'
     );
+    expect(readGenerated(repoRoot, "apps/web/app/todo/page.tsx")).toContain(
+      "workspace.activeOrganizationId"
+    );
+    expect(readGenerated(repoRoot, "apps/web/app/todo/page.tsx")).toContain(
+      'query.set("organizationId", organizationId);'
+    );
     expect(readGenerated(repoRoot, "apps/web/app/todo/todos/page.tsx")).toContain(
       "createTodoWorkspaceAction"
+    );
+    expect(readGenerated(repoRoot, "apps/web/app/todo/todos/page.tsx")).toContain(
+      "No workspace with the Todo product is enabled for this account yet."
+    );
+    expect(readGenerated(repoRoot, "apps/web/app/todo/todos/page.tsx")).toContain(
+      'value={data.workspace.activeOrganizationId}'
     );
     expect(
       readGenerated(repoRoot, "apps/web/app/todo/todos/[todoId]/page.tsx")
     ).toContain("loadTodoWorkspaceDetailPage");
     expect(
+      readGenerated(repoRoot, "apps/web/app/todo/todos/[todoId]/page.tsx")
+    ).toContain("!data.workspace.activeOrganizationId");
+    expect(
       readGenerated(repoRoot, "apps/web/app/todo/todos/[todoId]/edit/page.tsx")
     ).toContain("updateTodoWorkspaceAction");
+    expect(
+      readGenerated(repoRoot, "apps/web/src/features/todo-product/server/todo-workspace.ts")
+    ).toContain("Enable the Todo product for a workspace before managing todos.");
     expect(
       readGenerated(repoRoot, "apps/web/app/todo/todos/[todoId]/page.tsx")
     ).toContain("archiveTodoWorkspaceAction");
@@ -148,7 +166,7 @@ describe("saas product install", () => {
     ).toBe(2);
     expect(
       readGenerated(repoRoot, "packages/domain/src/index.ts").match(
-        /export \* from "\.\/todo\/index\.js";/g
+        /export \* from "\.\/todo\/index";/g
       )?.length
     ).toBe(1);
   });
@@ -209,6 +227,15 @@ describe("saas product install", () => {
     expect(
       readGenerated(repoRoot, "packages/domain/src/crm/product.ts")
     ).toContain('"label": "Accounts"');
+    expect(
+      readGenerated(repoRoot, "apps/web/app/crm/page.tsx")
+    ).toContain("workspace.activeOrganizationId");
+    expect(
+      readGenerated(repoRoot, "apps/web/app/crm/deals/page.tsx")
+    ).toContain("No workspace with the Revenue CRM product is enabled for this account yet.");
+    expect(
+      readGenerated(repoRoot, "apps/web/src/features/crm-product/server/deal-workspace.ts")
+    ).toContain("Enable the Revenue CRM product for a workspace before managing deals.");
     expect(
       readGenerated(repoRoot, "apps/api/src/product-module.ts").match(
         /crmProductModule/g

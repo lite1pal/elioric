@@ -1,7 +1,7 @@
-import type { TodoRecord } from "../domain/schemas";
+import type { TodoRecord } from "../domain/schemas.js";
 
-import { TodoEmptyState } from "./todo-empty-state";
-import { TodoTable } from "./todo-table";
+import { TodoEmptyState } from "./todo-empty-state.js";
+import { TodoTable } from "./todo-table.js";
 
 type TodoRelationPresentation = {
   href?: string;

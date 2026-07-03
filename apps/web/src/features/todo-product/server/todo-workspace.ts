@@ -89,16 +89,14 @@ export async function createTodoWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
-
   if (!organizationId.trim()) {
     return redirect(
       buildFailurePath("/todo/todos", "", projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: "Enable the Todo product for a workspace before creating todos."
+        feedback: "Enable the Todo product for a workspace before managing todos."
       }) as never
     );
   }
-
   try {
     const payload = createTodoInputSchema.parse({
       title: String(formData.get("title") ?? ""),
@@ -130,6 +128,14 @@ export async function updateTodoWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourceEditPath("/todo/todos", todoId), "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the Todo product for a workspace before managing todos."
+      }) as never
+    );
+  }
   try {
     const payload = updateTodoInputSchema.parse({
       title: String(formData.get("title") ?? ""),
@@ -167,6 +173,14 @@ export async function archiveTodoWorkspaceAction(formData: FormData) {
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
 
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/todo/todos", todoId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the Todo product for a workspace before managing todos."
+      }) as never
+    );
+  }
+
   try {
     await createResourceClient(createServerApiClient()).archive(
       organizationId,
@@ -202,6 +216,14 @@ export async function unarchiveTodoWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/todo/todos", todoId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the Todo product for a workspace before managing todos."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(

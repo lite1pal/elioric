@@ -4,9 +4,9 @@ import type {
   ProductModuleShellConfig,
   ProductModuleWorkspaceScope,
   RegisteredProductModule
-} from "../product/runtime-module";
+} from "../product/runtime-module.js";
 
-import { crmProduct } from "./product";
+import { crmProduct } from "./product.js";
 
 const crmOnboardingCopy: ProductModuleOnboardingCopy = {
   completeSummaryDescription:

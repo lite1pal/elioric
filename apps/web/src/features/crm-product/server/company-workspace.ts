@@ -93,7 +93,7 @@ export async function createCompanyWorkspaceAction(formData: FormData) {
     return redirect(
       buildFailurePath("/crm/companies", "", projectId, listQuery, {
         draftValues: buildDraftValues(formData),
-        feedback: "Enable the CRM product for a workspace before creating records."
+        feedback: "Enable the CRM product for a workspace before managing companies."
       }) as never
     );
   }
@@ -127,6 +127,14 @@ export async function updateCompanyWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourceEditPath("/crm/companies", companyId), "", projectId, listQuery, {
+        draftValues: buildDraftValues(formData),
+        feedback: "Enable the CRM product for a workspace before managing companies."
+      }) as never
+    );
+  }
   try {
     const payload = updateCompanyInputSchema.parse({
       name: String(formData.get("name") ?? ""),
@@ -163,6 +171,14 @@ export async function archiveCompanyWorkspaceAction(formData: FormData) {
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
 
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/companies", companyId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing companies."
+      }) as never
+    );
+  }
+
   try {
     await createResourceClient(createServerApiClient()).archive(
       organizationId,
@@ -198,6 +214,14 @@ export async function unarchiveCompanyWorkspaceAction(formData: FormData) {
   const organizationId = String(formData.get("organizationId") ?? "");
   const projectId = coerceString(formData.get("projectId"));
   const listQuery = readListQueryFromFormData(formData);
+
+  if (!organizationId.trim()) {
+    return redirect(
+      buildFailurePath(buildResourcePath("/crm/companies", companyId, "", projectId, listQuery), "", projectId, listQuery, {
+        feedback: "Enable the CRM product for a workspace before managing companies."
+      }) as never
+    );
+  }
 
   try {
     await createResourceClient(createServerApiClient()).unarchive(

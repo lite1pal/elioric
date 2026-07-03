@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { ContactRecord } from "../domain/schemas";
+import type { ContactRecord } from "../domain/schemas.js";
 
 type ContactFormRelationOption = {
   label: string;

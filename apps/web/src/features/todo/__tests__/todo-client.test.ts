@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApiClient, ApiRequestOptions } from "@/src/lib/api/api-client";
-import { createResourceClient } from "../api/todo-client";
+import { createResourceClient } from "../api/todo-client.js";
 
 describe("createResourceClient", () => {
   it("loads todos through the API client", async () => {

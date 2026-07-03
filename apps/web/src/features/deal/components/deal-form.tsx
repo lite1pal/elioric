@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { DealRecord } from "../domain/schemas";
+import type { DealRecord } from "../domain/schemas.js";
 
 type DealFormRelationOption = {
   label: string;

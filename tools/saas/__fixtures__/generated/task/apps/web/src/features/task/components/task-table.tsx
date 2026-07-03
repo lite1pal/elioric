@@ -82,9 +82,11 @@ function buildResourceHref(
     return `${input.resourceBasePath}/${id}?${input.resourceQuery}`;
   }
 
-  const query = new URLSearchParams({
-    organizationId: input.organizationId ?? ""
-  });
+  const query = new URLSearchParams();
+
+  if (input.organizationId) {
+    query.set("organizationId", input.organizationId);
+  }
 
   if (input.projectId) {
     query.set("projectId", input.projectId);
@@ -101,9 +103,11 @@ function buildEditHref(
     return `${input.resourceBasePath}/${id}/edit?${input.resourceQuery}`;
   }
 
-  const query = new URLSearchParams({
-    organizationId: input.organizationId ?? ""
-  });
+  const query = new URLSearchParams();
+
+  if (input.organizationId) {
+    query.set("organizationId", input.organizationId);
+  }
 
   if (input.projectId) {
     query.set("projectId", input.projectId);

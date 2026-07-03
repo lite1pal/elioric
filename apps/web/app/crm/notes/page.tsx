@@ -26,12 +26,14 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
     installedProducts: data.workspace.activeOrganizationInstalledProducts,
     preferredProductId: "crm"
   });
-  const resourceQuery = buildWorkspaceSuffix(
-    data.workspace.activeOrganizationId ?? "",
-    data.workspace.activeProjectId ?? undefined,
-    data.listQuery,
-    { includeCursor: true }
-  ).slice(1);
+  const resourceQuery = data.workspace.activeOrganizationId
+    ? buildWorkspaceSuffix(
+        data.workspace.activeOrganizationId,
+        data.workspace.activeProjectId ?? undefined,
+        data.listQuery,
+        { includeCursor: true }
+      ).slice(1)
+    : "";
   const nextPageHref =
     data.pageInfo.hasMore && data.pageInfo.nextCursor && data.workspace.activeOrganizationId
       ? "/crm/notes" +
@@ -77,52 +79,52 @@ export default async function ResourcePage({ searchParams }: ResourcePageProps) 
               <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
               <input name="list_dealId" type="hidden" value={data.listQuery.dealId ?? ""} />
             </NoteForm>
-            <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
-              <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
-              <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-              <label className="grid gap-2">
-            <span>Archived</span>
-            <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.archived} name="archived">
-              <option value="exclude">Active</option>
-              <option value="include">All</option>
-              <option value="only">Archived</option>
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span>Search</span>
-            <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.query ?? ""} name="query" type="text" />
-          </label>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2">
-              <span>Sort By</span>
-              <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortBy} name="sortBy">
-                <option value="createdAt">Created At</option>
-                <option value="updatedAt">Updated At</option>
-              </select>
-            </label>
-            <label className="grid gap-2">
-              <span>Sort Direction</span>
-              <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortDirection} name="sortDirection">
-                <option value="desc">Descending</option>
-                <option value="asc">Ascending</option>
-              </select>
-            </label>
-          </div>
-          <label className="grid gap-2">
-            <span>Page Size</span>
-            <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.limit?.toString() ?? "25"} name="limit">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </label>
-          <label className="grid gap-2">
-            <span>Deal Id</span>
-            <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.dealId ?? ""} name="dealId" type="text" />
-              </label>
-              <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Apply Filters</button>
-            </form>
+                <form action="" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-4 py-4" method="GET">
+                  <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
+                  <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
+                  <label className="grid gap-2">
+                    <span>Archived</span>
+                    <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.archived} name="archived">
+                      <option value="exclude">Active</option>
+                      <option value="include">All</option>
+                      <option value="only">Archived</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2">
+                    <span>Search</span>
+                    <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.query ?? ""} name="query" type="text" />
+                  </label>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-2">
+                      <span>Sort By</span>
+                      <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortBy} name="sortBy">
+                        <option value="createdAt">Created At</option>
+                        <option value="updatedAt">Updated At</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-2">
+                      <span>Sort Direction</span>
+                      <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.sortDirection} name="sortDirection">
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label className="grid gap-2">
+                    <span>Page Size</span>
+                    <select className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.limit?.toString() ?? "25"} name="limit">
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2">
+                    <span>Deal Id</span>
+                    <input className="rounded-md border border-[var(--border)] px-3 py-2" defaultValue={data.listQuery.dealId ?? ""} name="dealId" type="text" />
+                  </label>
+                  <button className="w-fit rounded-md border border-[var(--border)] px-3 py-2 text-sm font-medium" type="submit">Apply Filters</button>
+                </form>
             <NoteScreen
               items={data.items}
               organizationId={data.workspace.activeOrganizationId}
@@ -151,7 +153,11 @@ function buildWorkspaceSuffix(
     includeCursor?: boolean;
   }
 ) {
-  const search = new URLSearchParams({ organizationId });
+  const search = new URLSearchParams();
+
+  if (organizationId) {
+    search.set("organizationId", organizationId);
+  }
 
   if (projectId) {
     search.set("projectId", projectId);

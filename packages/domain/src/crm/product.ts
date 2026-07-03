@@ -1,7 +1,7 @@
 import type {
   ProductDefinition,
   ProductModuleManifest
-} from "../product/index";
+} from "../product/index.js";
 
 type CrmProductDefinition = ProductModuleManifest &
   ProductDefinition & {

@@ -51,24 +51,28 @@ export default async function ResourceEditPage({
           <h1 className="text-3xl font-semibold text-[var(--foreground)]">Edit Todo</h1>
           <p className="max-w-2xl text-sm text-[var(--muted)]">Update the generated todo record through the existing API seam.</p>
         </header>
-        <TodoForm
-          action={updateTodoWorkspaceAction}
-          defaultValues={data.draftValues?.title !== undefined || data.draftValues?.details !== undefined || data.draftValues?.status !== undefined || data.draftValues?.dueAt !== undefined ? { ...(data.item ?? {}), ...data.draftValues } : data.item ?? undefined}
-          fieldErrors={data.fieldErrors}
-          formError={data.feedback}
-          relationOptions={data.formOptions}
-          submitLabel="Save Todo"
-        >
-          <input name="todoId" type="hidden" value={data.item?.id ?? resolvedParams.todoId} />
-          <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId ?? ""} />
-          <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
-          <input name="list_archived" type="hidden" value={data.listQuery.archived} />
-          <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
-          <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
-          <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
-          <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
-          <input name="list_status" type="hidden" value={data.listQuery.status ?? ""} />
-        </TodoForm>
+        {data.workspace.activeOrganizationId ? (
+          <TodoForm
+            action={updateTodoWorkspaceAction}
+            defaultValues={data.draftValues?.title !== undefined || data.draftValues?.details !== undefined || data.draftValues?.status !== undefined || data.draftValues?.dueAt !== undefined ? { ...(data.item ?? {}), ...data.draftValues } : data.item ?? undefined}
+            fieldErrors={data.fieldErrors}
+            formError={data.feedback}
+            relationOptions={data.formOptions}
+            submitLabel="Save Todo"
+          >
+            <input name="todoId" type="hidden" value={data.item?.id ?? resolvedParams.todoId} />
+            <input name="organizationId" type="hidden" value={data.workspace.activeOrganizationId} />
+            <input name="projectId" type="hidden" value={data.workspace.activeProjectId ?? ""} />
+            <input name="list_archived" type="hidden" value={data.listQuery.archived} />
+            <input name="list_query" type="hidden" value={data.listQuery.query ?? ""} />
+            <input name="list_limit" type="hidden" value={data.listQuery.limit?.toString() ?? ""} />
+            <input name="list_sortBy" type="hidden" value={data.listQuery.sortBy} />
+            <input name="list_sortDirection" type="hidden" value={data.listQuery.sortDirection} />
+            <input name="list_status" type="hidden" value={data.listQuery.status ?? ""} />
+          </TodoForm>
+        ) : (
+          <section className="rounded-xl border border-dashed border-[var(--border)] px-4 py-4 text-sm text-[var(--muted)]">No workspace with the Todo product is enabled for this account yet.</section>
+        )}
       </div>
     </AppShell>
   );

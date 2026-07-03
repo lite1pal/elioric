@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ApiClient, ApiRequestOptions } from "@/src/lib/api/api-client";
-import { createResourceClient } from "../api/contact-client";
+import { createResourceClient } from "../api/contact-client.js";
 
 describe("createResourceClient", () => {
   it("loads contacts through the API client", async () => {
