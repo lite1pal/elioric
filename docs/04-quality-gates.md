@@ -123,6 +123,17 @@ pnpm build:web:container
 docker compose -f docker-compose.coolify.yml up --build
 ```
 
+The hosted browser flow also needs one explicit first-event UX proof, not just
+passing commands:
+
+- `/getting-started` must give a readable next step when no organization exists
+- the onboarding checklist must redirect API-key and first-event actions back to
+  project creation when no project is selected
+- the onboarding checklist must point to `/api-keys` and show the expected
+  placeholder credential when the first API key has not been created yet
+- the main event stream must render a no-events state that links back to
+  `/getting-started`
+
 The deployed runtime now includes `web + api + worker + postgres`. Worker
 checks now prove the real outbox polling loop and handler dispatch path, not
 just config parsing and idle startup.

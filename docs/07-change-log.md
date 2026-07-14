@@ -1,5 +1,14 @@
 # Change Log
 
+## 2026-07-14
+
+- Started T-082 by making the hosted AuditTrail first-event proof more explicit
+  in both tests and docs. The web onboarding tests now cover readable no-project
+  and no-key states through the real product-owned onboarding copy, while the
+  README and hosted quality-gate docs now spell out the signed-in path from
+  `/getting-started` through first event visibility and the expected empty-state
+  guidance at each setup checkpoint.
+
 ## 2026-07-02
 
 - Completed T-122 by adding richer generated form widgets and field-level

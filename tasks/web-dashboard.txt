@@ -4,27 +4,6 @@ This file tracks web dashboard work items.
 
 ## Queue
 
-- [ ] T-082 Add hosted happy-path smoke doc and empty-state coverage
-  status: ready
-  priority: high
-  owner: codex
-  branch:
-  pr:
-  last_updated: 2026-06-30
-  blocked_reason:
-  files:
-    - apps/web/app/getting-started/*
-    - apps/web/src/features/audit-events/*
-    - apps/web/src/features/**/__tests__/*
-    - README.md
-    - docs/04-quality-gates.md
-    - docs/07-change-log.md
-    - tasks/web-dashboard.txt
-  acceptance:
-    - Documentation proves the hosted operator happy path from sign-in through first event visibility
-    - Web tests cover readable no-project, no-key, and no-events states without requiring manual setup knowledge
-    - Any user-facing flow change is reflected in docs and tests together
-
 - [ ] T-083 Add event detail and bounded dashboard investigation UX
   status: ready
   priority: high
@@ -95,6 +74,32 @@ This file tracks web dashboard work items.
     - Web tests prove product switching and unavailable-product behavior stay fail-closed
 
 ## Done
+
+- [x] T-082 Add hosted happy-path smoke doc and empty-state coverage
+  status: done
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-14
+  completed: 2026-07-14
+  blocked_reason:
+  notes:
+    - 2026-07-14: documented the hosted AuditTrail first-event path in `README.md` and added explicit hosted release-gate UX expectations in `docs/04-quality-gates.md`
+    - 2026-07-14: expanded web onboarding coverage for readable no-project and no-key setup states while keeping the existing audit-events no-events state in the targeted proof set
+    - 2026-07-14: verified with `./node_modules/.bin/vitest run src/features/onboarding/__tests__/onboarding-screen.test.tsx --config vitest.config.ts` and `./node_modules/.bin/vitest run src/features/audit-events/__tests__/audit-events-screen.test.tsx src/features/api-keys/__tests__/api-keys-screen.test.tsx --config vitest.config.ts` from `apps/web`
+  files:
+    - apps/web/app/getting-started/*
+    - apps/web/src/features/audit-events/*
+    - apps/web/src/features/**/__tests__/*
+    - README.md
+    - docs/04-quality-gates.md
+    - docs/07-change-log.md
+    - tasks/web-dashboard.txt
+  acceptance:
+    - Documentation proves the hosted operator happy path from sign-in through first event visibility
+    - Web tests cover readable no-project, no-key, and no-events states without requiring manual setup knowledge
+    - Any user-facing flow change is reflected in docs and tests together
 
 - [x] T-108 Add generic resource search, filter, sort, and pagination primitives
   status: done

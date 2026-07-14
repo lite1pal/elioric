@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { buildOnboardingStepViews } from "@/app/product-module";
 import { OnboardingScreen } from "@/src/features/onboarding/components/onboarding-screen";
 import type {
   OnboardingScreenCopy,
@@ -142,6 +143,110 @@ describe("OnboardingScreen", () => {
     );
     expect(screen.getByText("curl https://api.example.com")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Dismiss from sidebar" })).toBeTruthy();
+  });
+
+  it("renders readable no-project guidance through the onboarding checklist", () => {
+    const activeOnboarding = {
+      completedRequiredSteps: 0,
+      isComplete: false,
+      isDismissed: false,
+      steps: [
+        {
+          id: "api_key_created" as const,
+          required: true,
+          status: "pending" as const
+        },
+        {
+          id: "first_event_ingested" as const,
+          required: true,
+          status: "pending" as const
+        }
+      ],
+      totalRequiredSteps: 2
+    };
+
+    render(
+      <OnboardingScreen
+        activeOnboarding={activeOnboarding}
+        activeOrganizationId="org-1"
+        activeOrganizationName="Acme"
+        onboardingCopy={onboardingCopy}
+        onboardingStepViews={buildOnboardingStepViews({
+          activeOnboarding,
+          activeOrganizationId: "org-1"
+        })}
+        updateOnboardingStateAction={noopAction}
+      />
+    );
+
+    expect(screen.getByText("Acme setup progress")).toBeTruthy();
+    expect(screen.getByText("Create an API key")).toBeTruthy();
+    expect(
+      screen.getByText("Generate a machine credential in the existing API keys flow.")
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("link", { name: "Create a project first" }).map((link) =>
+        link.getAttribute("href")
+      )
+    ).toEqual([
+      "/settings?organizationId=org-1#project-settings",
+      "/settings?organizationId=org-1#project-settings"
+    ]);
+    expect(screen.queryByText("Ingest command")).toBeNull();
+  });
+
+  it("renders readable no-key guidance for a selected project before the first event exists", () => {
+    const activeOnboarding = {
+      completedRequiredSteps: 1,
+      isComplete: false,
+      isDismissed: false,
+      steps: [
+        {
+          completedAt: "2026-06-25T10:00:00.000Z",
+          id: "project_created" as const,
+          required: true,
+          status: "complete" as const
+        },
+        {
+          id: "api_key_created" as const,
+          required: true,
+          status: "pending" as const
+        },
+        {
+          id: "first_event_ingested" as const,
+          required: true,
+          status: "pending" as const
+        }
+      ],
+      totalRequiredSteps: 3
+    };
+
+    render(
+      <OnboardingScreen
+        activeOnboarding={activeOnboarding}
+        activeOrganizationId="org-1"
+        activeOrganizationName="Acme"
+        activeProjectId="project-1"
+        activeProjectName="Production"
+        ingestCommand={"curl https://api.example.com \\\n  -H 'authorization: Bearer <YOUR_API_KEY>'"}
+        onboardingCopy={onboardingCopy}
+        onboardingStepViews={buildOnboardingStepViews({
+          activeOnboarding,
+          activeOrganizationId: "org-1",
+          activeProjectId: "project-1"
+        })}
+        updateOnboardingStateAction={noopAction}
+      />
+    );
+
+    expect(screen.getByText("Acme / Production")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Create first API key" }).getAttribute("href")).toBe(
+      "/api-keys?organizationId=org-1&projectId=project-1"
+    );
+    expect(
+      screen.getByText("Generate a machine credential in the existing API keys flow.")
+    ).toBeTruthy();
+    expect(screen.getByText(/authorization: Bearer <YOUR_API_KEY>/)).toBeTruthy();
   });
 });
 

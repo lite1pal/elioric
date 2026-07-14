@@ -144,6 +144,32 @@ Start the landing site:
 pnpm dev:landing
 ```
 
+## Hosted AuditTrail Happy Path
+
+The current hosted AuditTrail proof should be easy to verify without tribal
+knowledge:
+
+1. sign in to the web app
+2. open `/getting-started`
+3. create an organization if none exists yet
+4. create the first project for that organization
+5. create the first API key for the selected project
+6. send one test event with the guided ingest command
+7. confirm the event appears on the main event stream
+
+The signed-in web flow should stay readable at each empty state:
+
+- no organization: `/getting-started` points the operator to workspace settings
+- no project: onboarding redirects the next setup actions back to project creation
+- no API key: onboarding points the operator to the API key screen and shows the
+  expected credential placeholder in the ingest command
+- no events: the event stream links back to `/getting-started` instead of
+  requiring the operator to guess the next step
+
+The full hosted release gate and manual smoke checklist live in
+[docs/04-quality-gates.md](./docs/04-quality-gates.md) and
+[docs/06-deployment.md](./docs/06-deployment.md).
+
 ## Framework Commands
 
 Elioric is currently driven from the terminal.
