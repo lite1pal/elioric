@@ -94,15 +94,19 @@ This file tracks web dashboard work items.
     - Shared shell and settings surfaces stay product-neutral and derive the visible product affordances from product manifests or generated config
     - Web tests prove product switching and unavailable-product behavior stay fail-closed
 
-- [ ] T-108 Add generic resource search, filter, sort, and pagination primitives
-  status: ready
+## Done
+
+- [x] T-108 Add generic resource search, filter, sort, and pagination primitives
+  status: done
   priority: high
   owner: codex
   branch:
   pr:
-  last_updated: 2026-07-01
-  completed:
+  last_updated: 2026-07-14
+  completed: 2026-07-02
   blocked_reason:
+  notes:
+    - 2026-07-14: tracker cleanup marked this complete because the same generated list-query slice shipped as T-121 in `tasks/workflow.txt` and is recorded in `docs/05-next-steps.md` and `docs/07-change-log.md`
   files:
     - apps/web/src/features/*
     - apps/web/src/components/ui/*
@@ -118,8 +122,6 @@ This file tracks web dashboard work items.
     - Generated or scaffolded resource screens can reuse one bounded set of list-state primitives for search, filters, sorting, and pagination
     - API and web contracts stay explicit about supported query shapes instead of exposing unbounded ad hoc filtering
     - The resulting primitives are good enough to support project-manager entities such as projects, tasks, and comments without bespoke table plumbing for each one
-
-## Done
 
 - [x] T-051 Add billing settings UI
   status: done

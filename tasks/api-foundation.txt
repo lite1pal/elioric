@@ -43,15 +43,19 @@ This file tracks API runtime, platform, and data-safety work items.
     - App startup behavior remains covered by tests
     - The module boundaries are documented if they materially change architecture
 
-- [ ] T-105 Add product-level authorization patterns for generated products
-  status: ready
+## Done
+
+- [x] T-105 Add product-level authorization patterns for generated products
+  status: done
   priority: high
   owner: codex
   branch:
   pr:
-  last_updated: 2026-07-01
-  completed:
+  last_updated: 2026-07-14
+  completed: 2026-07-02
   blocked_reason:
+  notes:
+    - 2026-07-14: tracker cleanup marked this complete because the same framework slice shipped as T-119 in `tasks/workflow.txt` and is recorded in `docs/05-next-steps.md` and `docs/07-change-log.md`
   files:
     - apps/api/src/modules/platform/*
     - apps/api/src/modules/generated/*
@@ -66,8 +70,6 @@ This file tracks API runtime, platform, and data-safety work items.
     - The platform exposes a small explicit authorization model that product modules can reuse for role-aware write rules without coupling to AuditTrail behavior
     - Generated or scaffolded resources can opt into bounded owner/admin/member-style write policies and product-defined checks such as assignee or project membership
     - Route, service, and repo tests prove the supported policy shapes fail closed instead of relying only on hidden UI gating
-
-## Done
 
 - [x] T-086 Harden ingest observability, quota, and failure-path coverage
   status: done
