@@ -17,8 +17,3 @@ export * from "./generated/company/index";
 export * from "./generated/contact/index";
 export * from "./generated/deal/index";
 export * from "./generated/note/index";
-export * from "./generated/todo/index.js";
-export * from "./generated/company/index.js";
-export * from "./generated/contact/index.js";
-export * from "./generated/deal/index.js";
-export * from "./generated/note/index.js";

@@ -197,8 +197,8 @@ export function createProductGeneratedFiles(
     {
       path: `packages/domain/src/${productPath}/index.ts`,
       contents: [
-        'export * from "./product.js";',
-        'export * from "./product-module.js";'
+        'export * from "./product";',
+        'export * from "./product-module";'
       ].join("\n")
     },
     {
@@ -371,7 +371,7 @@ function renderDomainProductFile(product: GeneratedProductSpec) {
     'import type {',
     "  ProductDefinition,",
     "  ProductModuleManifest",
-    '} from "../product/index.js";',
+    '} from "../product/index";',
     "",
     `type ${pascalName}ProductDefinition = ProductModuleManifest &`,
     "  ProductDefinition & {",
@@ -422,9 +422,9 @@ function renderDomainProductModuleFile(product: GeneratedProductSpec) {
     "  ProductModuleShellConfig,",
     "  ProductModuleWorkspaceScope,",
     "  RegisteredProductModule",
-    '} from "../product/runtime-module.js";',
+    '} from "../product/runtime-module";',
     "",
-    `import { ${camelName}Product } from "./product.js";`,
+    `import { ${camelName}Product } from "./product";`,
     "",
     `const ${camelName}OnboardingCopy: ProductModuleOnboardingCopy = {`,
     `  completeSummaryDescription:`,
@@ -518,7 +518,7 @@ function renderDomainProductModuleTest(product: GeneratedProductSpec) {
   return [
     'import { describe, expect, it } from "vitest";',
     "",
-    `import { ${camelName}ProductModule } from "../product-module.js";`,
+    `import { ${camelName}ProductModule } from "../product-module";`,
     "",
     `describe("${camelName}ProductModule", () => {`,
     `  it("builds scoped shell navigation for ${product.name}", () => {`,

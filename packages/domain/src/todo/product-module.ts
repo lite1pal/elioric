@@ -4,9 +4,8 @@ import type {
   ProductModuleShellConfig,
   ProductModuleWorkspaceScope,
   RegisteredProductModule
-} from "../product/runtime-module.js";
-
-import { todoProduct } from "./product.js";
+} from "../product/runtime-module";
+import { todoProduct } from "./product";
 
 const todoOnboardingCopy: ProductModuleOnboardingCopy = {
   completeSummaryDescription:

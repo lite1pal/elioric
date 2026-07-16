@@ -584,6 +584,31 @@ This file tracks task-system and agent-workflow work items.
 
 ## Done
 
+- [x] T-138 Fix source-mode generated product-module exports for local app runtimes
+  status: done
+  priority: high
+  owner: codex
+  branch:
+  pr:
+  last_updated: 2026-07-14
+  completed: 2026-07-14
+  blocked_reason:
+  notes:
+    - 2026-07-14: fixed the committed `crm` and `todo` domain product modules to use extensionless sibling imports and re-exports so local Next app runtimes can resolve the raw TypeScript source package cleanly
+    - 2026-07-14: removed duplicate `.js` generated-resource re-exports from `packages/domain/src/index.ts` and updated the SaaS product installer templates so future generated product installs emit source-mode-safe domain files
+    - 2026-07-14: verified with `./node_modules/.bin/tsc -p packages/domain/tsconfig.json --noEmit`, `./node_modules/.bin/vitest run src/__tests__/product-module.test.ts --config vitest.config.ts` from `apps/web`, `./node_modules/.bin/vitest run src/crm/__tests__/product-module.test.ts src/todo/__tests__/product-module.test.ts` from `packages/domain`, and `./node_modules/.bin/vitest run tools/saas/__tests__/product-install.test.ts` from the repo root
+  files:
+    - packages/domain/src/*
+    - tools/saas/*
+    - apps/web/app/*
+    - apps/api/src/*
+    - docs/07-change-log.md
+    - tasks/workflow.txt
+  acceptance:
+    - Local app runtimes can import the committed generated `todo` and `crm` product modules without `module not found` errors from sibling `.js` specifiers
+    - The product installer emits source-mode-safe domain product files for future installs instead of reintroducing `.js` sibling imports
+    - Focused verification proves the web product runtime and SaaS product install path stay green after the export fix
+
 - [x] T-120 Add generated workflow and state-transition support
   status: done
   priority: high

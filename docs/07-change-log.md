@@ -9,6 +9,14 @@
   `/getting-started` through first event visibility and the expected empty-state
   guidance at each setup checkpoint.
 
+- Fixed source-mode generated product-module exports for local app runtimes.
+  The committed `crm` and `todo` domain product modules now use extensionless
+  sibling imports and re-exports that match the package's raw TypeScript export
+  map, duplicate `.js` generated-resource re-exports were removed from
+  `packages/domain/src/index.ts`, and the SaaS product installer now emits the
+  same source-mode-safe domain files so future product installs do not recreate
+  the local Next.js module-resolution failure.
+
 ## 2026-07-02
 
 - Completed T-122 by adding richer generated form widgets and field-level
