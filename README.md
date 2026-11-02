@@ -1,3 +1,7 @@
+> [!WARNING]
+> **This project is not being maintained at the moment.**
+
+
 # Elioric
 
 Elioric is an AI-native framework for creating production-ready
